@@ -115,6 +115,7 @@ def main() -> None:
         "10_adaptive_threshold",
         "11_sharpen",
         "12_rectified_gray",
+        "13_sequential_pipeline",
     ]
 
     for name, variant in zip(variant_names, variants):

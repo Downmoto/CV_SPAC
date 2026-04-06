@@ -5,6 +5,19 @@ import numpy as np
 
 from src.utils.text import normalize_plate_text
 
+# Default sequential pipeline order — reorder, remove, or insert steps as needed.
+# Each name maps to a self-contained preprocessing operation in _seq_step().
+SEQUENTIAL_STEPS: list[str] = [
+    "upscale",
+    "rectify",
+    "flatten",
+    "grayscale",
+    "denoise",
+    "clahe",
+    "sharpen",
+    "binarize",
+]
+
 
 class OCREngine:
     def __init__(
@@ -14,12 +27,14 @@ class OCREngine:
         backends: list[str] | None = None,
         use_rectification: bool = True,
         gpu: bool = True,
+        sequential_steps: list[str] | None = None,
     ) -> None:
         self.languages = languages or ["en"]
         self.min_conf = min_conf
         self.backends = [b.lower() for b in (backends or ["easyocr", "paddleocr"])]
         self.use_rectification = use_rectification
         self.gpu = gpu
+        self.sequential_steps: list[str] = list(sequential_steps or SEQUENTIAL_STEPS)
         self._easy_reader = None
         self._paddle_reader = None
 
@@ -212,6 +227,66 @@ class OCREngine:
                                      borderMode=cv2.BORDER_REPLICATE)
         return warped
 
+    def _seq_step(self, name: str, img: np.ndarray) -> np.ndarray:
+        """Dispatch a single named preprocessing step.
+
+        Each step is self-contained: it inspects whether its input is
+        grayscale (2-D) or BGR (3-D) and converts as needed, so steps
+        can be freely reordered in ``self.sequential_steps``.
+        """
+        is_gray = img.ndim == 2
+
+        if name == "upscale":
+            return self._upscale(img)
+
+        if name == "rectify":
+            if not self.use_rectification:
+                return img
+            bgr = img if not is_gray else cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            return self._rectify_plate(bgr)
+
+        if name == "flatten":
+            bgr = img if not is_gray else cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+            return self._flatten_plate(bgr)
+
+        if name == "grayscale":
+            return img if is_gray else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+        if name == "denoise":
+            return cv2.bilateralFilter(img, 9, 75, 75)
+
+        if name == "clahe":
+            g = img if is_gray else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            return cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8)).apply(g)
+
+        if name == "sharpen":
+            kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
+            return cv2.filter2D(img, -1, kernel)
+
+        if name == "binarize":
+            g = img if is_gray else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            _, binary = cv2.threshold(g, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+            return binary
+
+        if name == "adaptive_threshold":
+            g = img if is_gray else cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            return cv2.adaptiveThreshold(
+                g, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 31, 10,
+            )
+
+        raise ValueError(f"Unknown preprocessing step: {name!r}")
+
+    def _run_sequential_pipeline(self, image_bgr: np.ndarray) -> np.ndarray:
+        """Run every step in ``self.sequential_steps`` in order,
+        feeding each step's output into the next."""
+        img = image_bgr
+        for step in self.sequential_steps:
+            img = self._seq_step(step, img)
+        # ensure 3-channel output for OCR readers
+        if img.ndim == 2:
+            img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+        return img
+
     def _prepare_variants(self, image_bgr: np.ndarray) -> list[np.ndarray]:
         up = self._upscale(image_bgr)
         rectified = self._rectify_plate(up) if self.use_rectification else up
@@ -235,6 +310,8 @@ class OCREngine:
         kernel = np.array([[0, -1, 0], [-1, 5, -1], [0, -1, 0]], dtype=np.float32)
         sharpen = cv2.filter2D(clahe, -1, kernel)
 
+        sequential = self._run_sequential_pipeline(image_bgr)
+
         variants = [
             up,
             rectified,
@@ -245,6 +322,7 @@ class OCREngine:
             cv2.cvtColor(adaptive, cv2.COLOR_GRAY2BGR),
             cv2.cvtColor(sharpen, cv2.COLOR_GRAY2BGR),
             cv2.cvtColor(gray_rect, cv2.COLOR_GRAY2BGR),
+            sequential,
         ]
         return variants
 

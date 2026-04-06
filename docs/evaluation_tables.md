@@ -18,10 +18,10 @@ epochs recorded: 1
 | detection_rate | 0.977273 |
 | ocr_nonempty | 43 |
 | ocr_nonempty_rate | 0.977273 |
-| pred_access_granted | 9 |
-| pred_access_denied | 35 |
+| pred_access_granted | 10 |
+| pred_access_denied | 34 |
 | mean_detector_conf | 0.761268 |
-| mean_ocr_conf | 0.588681 |
+| mean_ocr_conf | 0.592573 |
 
 ## decision metrics (labeled)
 
@@ -30,22 +30,22 @@ epochs recorded: 1
 | labeled_samples | 44 |
 | unlabeled_samples | 0 |
 | positive_label | Access Granted |
-| accuracy | 0.909091 |
-| precision | 0.666667 |
+| accuracy | 0.886364 |
+| precision | 0.600000 |
 | recall | 0.857143 |
-| f1 | 0.750000 |
+| f1 | 0.705882 |
 
 | confusion term | count |
 |---|---:|
 | tp | 6 |
-| tn | 34 |
-| fp | 3 |
+| tn | 33 |
+| fp | 4 |
 | fn | 1 |
 
 | plate metric | value |
 |---|---:|
 | plate_labeled_samples | 39 |
-| plate_exact_match_rate | 0.282051 |
+| plate_exact_match_rate | 0.307692 |
 
 ## artifact paths
 
