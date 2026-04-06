@@ -92,7 +92,6 @@ class SPACPipeline:
         ocr_backends: list[str] | None = None,
         ocr_use_rectification: bool = True,
         device: str | None = None,
-        crnn_weights: str | None = None,
     ) -> None:
         self.detector = PlateDetector(weights_path, detector_conf_threshold, device=device)
         self.ocr = OCREngine(
@@ -101,7 +100,6 @@ class SPACPipeline:
             backends=ocr_backends or ["easyocr", "paddleocr"],
             use_rectification=ocr_use_rectification,
             gpu=device is not None and str(device) != "cpu",
-            crnn_weights=crnn_weights,
         )
         self.matcher = ResidentMatcher(
             resident_db_csv,

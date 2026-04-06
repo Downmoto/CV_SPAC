@@ -14,7 +14,6 @@ class OCREngine:
         backends: list[str] | None = None,
         use_rectification: bool = True,
         gpu: bool = True,
-        crnn_weights: str | None = None,
     ) -> None:
         self.languages = languages or ["en"]
         self.min_conf = min_conf
@@ -23,8 +22,6 @@ class OCREngine:
         self.gpu = gpu
         self._easy_reader = None
         self._paddle_reader = None
-        self._crnn_model = None
-        self._crnn_weights = crnn_weights
 
     def _plate_plausibility(self, text: str) -> float:
         if not text:
@@ -80,59 +77,6 @@ class OCREngine:
                 use_gpu=self.gpu,
             )
         return self._paddle_reader
-
-    def _ensure_crnn_model(self):
-        if self._crnn_model is None:
-            import torch
-            from src.ocr.plate_crnn import PlateRecCRNN, NUM_CLASSES
-
-            self._crnn_model = PlateRecCRNN(img_h=32, num_classes=NUM_CLASSES, hidden_size=128)
-            weights_path = self._crnn_weights or "models/plate_crnn.pt"
-            state = torch.load(weights_path, map_location="cpu", weights_only=True)
-            self._crnn_model.load_state_dict(state)
-            self._crnn_model.eval()
-        return self._crnn_model
-
-    def _read_crnn(self, image_bgr: np.ndarray) -> list[tuple[str, float]]:
-        """run crnn plate recognition on a single image variant."""
-        import torch
-        from src.ocr.plate_crnn import decode_output
-
-        model = self._ensure_crnn_model()
-
-        # preprocess: grayscale, resize to 32xW keeping aspect, pad to 128
-        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY) if len(image_bgr.shape) == 3 else image_bgr
-        h, w = gray.shape[:2]
-        img_h, img_w = 32, 128
-        ratio = img_h / max(1, h)
-        new_w = min(int(w * ratio), img_w)
-        resized = cv2.resize(gray, (new_w, img_h), interpolation=cv2.INTER_CUBIC)
-        if new_w < img_w:
-            pad = np.zeros((img_h, img_w - new_w), dtype=np.uint8)
-            resized = np.concatenate([resized, pad], axis=1)
-
-        tensor = torch.from_numpy(resized).float().unsqueeze(0).unsqueeze(0) / 255.0
-
-        with torch.no_grad():
-            output = model(tensor)  # (seq_len, 1, classes)
-
-        # greedy decode with confidence
-        probs = output.squeeze(1).exp()  # (seq_len, classes)
-        max_probs, preds = probs.max(1)  # (seq_len,)
-
-        text = decode_output(preds.tolist())
-        # confidence: average of non-blank character probabilities
-        non_blank = [(p.item(), idx.item()) for p, idx in zip(max_probs, preds) if idx.item() != 0]
-        if non_blank:
-            conf = sum(p for p, _ in non_blank) / len(non_blank)
-        else:
-            conf = 0.0
-
-        text = normalize_plate_text(text)
-        candidates = []
-        if text:
-            candidates.append((text, conf))
-        return candidates
 
     def _upscale(self, image_bgr: np.ndarray) -> np.ndarray:
         h, w = image_bgr.shape[:2]
@@ -334,12 +278,6 @@ class OCREngine:
             if "paddleocr" in self.backends:
                 try:
                     candidates.extend(self._read_best_paddle(variant))
-                except Exception:
-                    pass
-
-            if "crnn" in self.backends:
-                try:
-                    candidates.extend(self._read_crnn(variant))
                 except Exception:
                     pass
 

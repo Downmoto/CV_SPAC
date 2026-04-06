@@ -36,7 +36,6 @@ outputs/preprocessing_steps/*
 # models and datasets
 data/raw/*
 data/processed/*
-data/plate_crops/*
 !data/raw/.gitkeep
 !data/processed/.gitkeep
 

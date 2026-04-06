@@ -37,20 +37,19 @@ training:
   batch: 16
   project: outputs
   name: detector_train
-  device: cpu
+  device: 0
 
 inference:
   detector_conf_threshold: 0.25
   ocr_conf_threshold: 0.35
   fuzzy_match_threshold: 90
   use_fuzzy_matching: true
-  device: cpu
+  device: 0
 
 ocr:
   language_list: ["en"]
-  backends: ["easyocr", "paddleocr", "crnn"]
+  backends: ["easyocr", "paddleocr"]
   use_rectification: true
-  crnn_weights: "models/plate_crnn.pt"
 
 evaluation:
   decision_positive_label: Access Granted
