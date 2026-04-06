@@ -161,6 +161,9 @@ def run_train(cfg: dict[str, Any]) -> None:
         "--name",
         str(tr.get("name", "detector_train")),
     ]
+    device = tr.get("device")
+    if device is not None:
+        args.extend(["--device", str(device)])
     run_module("src.train.train_detector", args)
 
 

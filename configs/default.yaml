@@ -37,6 +37,7 @@ training:
   batch: 16
   project: outputs
   name: detector_train
+  device: 0
 
 inference:
   detector_conf_threshold: 0.25

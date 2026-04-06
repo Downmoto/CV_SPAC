@@ -10,6 +10,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=16)
+    parser.add_argument(
+        "--device",
+        default=None,
+        help="training device (e.g., 0 for first GPU, cpu for CPU, or 0,1 for multi-GPU)",
+    )
     parser.add_argument("--project", default="outputs")
     parser.add_argument("--name", default="detector_train")
     return parser.parse_args()
@@ -23,6 +28,7 @@ def main() -> None:
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
+        device=args.device,
         project=args.project,
         name=args.name,
     )

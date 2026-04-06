@@ -26,6 +26,10 @@ outputs/demo/*
 !outputs/metrics/.gitkeep
 !outputs/demo/.gitkeep
 
+# pretrained base weights (auto-downloaded)
+*.pt
+!models/plate_detector.pt
+
 # models and datasets
 data/raw/*
 data/processed/*
