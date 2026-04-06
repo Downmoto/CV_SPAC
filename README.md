@@ -85,10 +85,13 @@ all default paths and thresholds live in `configs/default.yaml`. prefer editing 
 
 ## git and raw images
 
-`data/raw/*` and `data/processed/*` are gitignored — download datasets locally without committing large files.
+`data/raw/*` and `data/processed/*` are gitignored — download datasets locally.
 
 ## Notes
 
 - if `models/plate_detector.pt` is missing, inference will fail with a clear error.
 - if OCR confidence is low, matching may return denied as expected.
 - fuzzy matching can be toggled in `configs/default.yaml`.
+
+## Authors
+Arad Fadaei, Sia Tedy
