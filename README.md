@@ -92,6 +92,14 @@ evaluate with ground truth + report:
 python -m src.main --eval --use-ground-truth --report
 ```
 
+generate ground-truth template from latest inference output:
+
+```bash
+python -m src.eval.create_ground_truth_template \
+  --inference-json outputs/predictions/inference_results.json \
+  --output-csv outputs/metrics/ground_truth_template.csv
+```
+
 full pipeline (long-running, includes training):
 
 ```bash
@@ -273,6 +281,28 @@ python -m src.infer.run_inference --image-dir path/to/images
 Outputs:
 - json: `outputs/predictions/inference_results.json`
 - visual results: `outputs/demo`
+
+Export preprocessing steps for one image (for report/presentation figures):
+
+```bash
+python -m src.infer.export_preprocessing_steps \
+  --image data/processed/car_plate_kaggle/images/test/Cars111.png \
+  --output-dir outputs/preprocessing_steps
+```
+
+This saves stage images under:
+- `outputs/preprocessing_steps/Cars111/01_original.png`
+- `outputs/preprocessing_steps/Cars111/02_detected_bbox.png`
+- `outputs/preprocessing_steps/Cars111/03_plate_crop.png`
+- `outputs/preprocessing_steps/Cars111/04_upscaled.png`
+- `outputs/preprocessing_steps/Cars111/05_rectified_or_upscaled.png`
+- `outputs/preprocessing_steps/Cars111/06_denoise.png`
+- `outputs/preprocessing_steps/Cars111/07_clahe.png`
+- `outputs/preprocessing_steps/Cars111/08_otsu_threshold.png`
+- `outputs/preprocessing_steps/Cars111/09_adaptive_threshold.png`
+- `outputs/preprocessing_steps/Cars111/10_sharpen.png`
+- `outputs/preprocessing_steps/Cars111/11_rectified_gray.png`
+- `outputs/preprocessing_steps/Cars111/summary.txt`
 
 ## 5) Evaluate pipeline outputs
 

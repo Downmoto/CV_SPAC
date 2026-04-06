@@ -22,10 +22,12 @@ venv/
 outputs/predictions/*
 outputs/metrics/*
 outputs/demo/*
+outputs/preprocessing_steps/*
 !outputs/predictions/.gitkeep
 !outputs/metrics/.gitkeep
 !outputs/metrics/ground_truth_template.csv
 !outputs/demo/.gitkeep
+!outputs/preprocessing_steps/.gitkeep
 
 # pretrained base weights (auto-downloaded)
 *.pt
