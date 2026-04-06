@@ -1,0 +1,60 @@
+== Dataset
+
+The detector was trained and evaluated using the Kaggle dataset `andrewmvd/car-plate-detection`.
+This dataset provides vehicle images paired with bounding-box annotations for visible license plates, making it suitable for the plate-localization stage of the SPAC pipeline.
+Within this project, the dataset serves only the object detection component; OCR and access-control behavior are evaluated later on the crops and structured outputs produced by the full inference pipeline.
+
+=== Source Data
+
+The raw dataset is stored under `data/raw/car-plate-detection/` and follows a Pascal VOC-style directory structure with separate `images/` and `annotations/` folders.
+The repository currently contains 433 raw images and 433 XML annotation files, so each image has a corresponding annotation record.
+
+Each annotation file describes the target object through a rectangular bounding box defined by `xmin`, `ymin`, `xmax`, and `ymax` coordinates in image pixel space.
+For this project, those annotations are treated as a single detection class, `plate`, because the training objective is limited to license plate localization rather than multi-class object recognition.
+
+=== Dataset Conversion
+
+Because Ultralytics YOLO expects labels in normalized YOLO format rather than Pascal VOC XML, the raw Kaggle dataset is converted before training.
+This conversion is handled by `src.data.prepare_kaggle_car_plate_dataset`, which performs the full preprocessing workflow in a reproducible way.
+
+The preparation script parses each XML annotation, extracts the image filename and image dimensions, validates the bounding-box coordinates, clamps them to valid image boundaries, and converts each box into YOLO center-width-height form:
+
+[source]
+----
+(x_center, y_center, width, height)
+----
+
+All four values are normalized by the image width and height, and the generated labels are written to text files under the standard YOLO directory structure.
+The output dataset is stored in `data/processed/car_plate_kaggle/` with paired `images/` and `labels/` directories for each split.
+
+=== Train-Validation-Test Split
+
+The dataset is shuffled using a fixed random seed of 42 and then divided according to the configured 80/10/10 split ratios.
+This produces a deterministic partition that can be regenerated later using the same configuration.
+In absolute terms, the split corresponds to 346 training images, 43 validation images, and 44 test images.
+
+.Processed Dataset Split
+[cols="1,1", options="header"]
+|===
+| Split | Proportion
+
+| Train
+| `80%`
+
+| Validation
+| `10%`
+
+| Test
+| `10%`
+|===
+
+The training split is used for parameter optimization, the validation split is used for checkpoint selection and metric tracking during training, and the test split is reserved for downstream end-to-end inference and evaluation.
+This separation is important because the detector should be assessed on images that were not seen during optimization.
+
+=== Dataset Metadata and Reproducibility
+
+After conversion, the preparation stage writes a `dataset.yaml` file in `data/processed/car_plate_kaggle/` that defines the dataset root, the train-validation-test image directories, and the single class name `plate`.
+This file is the canonical dataset descriptor consumed during YOLO training.
+
+The main dataset preparation parameters are centralized in `configs/default.yaml`, including the raw input path, processed output path, split ratios, random seed, and class name.
+Keeping these values in configuration rather than hardcoding them in the training script makes the data pipeline reproducible and keeps the report consistent with the implementation.

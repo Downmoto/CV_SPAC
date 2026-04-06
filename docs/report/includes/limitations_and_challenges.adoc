@@ -1,0 +1,40 @@
+== Limitations and Challenges
+
+The current SPAC pipeline demonstrates that a compact end-to-end access-control system can be built and evaluated successfully, while also highlighting several areas where additional refinement would further improve robustness.
+These challenges are not confined to a single module; instead, they emerge from the interaction between dataset scale, detector behavior, OCR quality, and the matching logic that converts recognized text into a final authorization decision.
+
+=== Dataset Scope and Generalization
+
+The detector and OCR workflow were developed and evaluated on a relatively small dataset derived from a single car-plate corpus.
+Although the train, validation, and test split is deterministic and well suited for reproducible experimentation, it does not yet cover the full diversity of plate layouts, camera angles, motion blur, lighting conditions, weather effects, and regional formatting that would appear in a real parking environment.
+Accordingly, the reported metrics should be interpreted as strong evidence that the pipeline works on the current benchmark, with future gains likely to come from testing on broader and more varied operational data.
+
+Another practical limitation is that the access-control database used in the project is intentionally small and synthetic.
+This makes it appropriate for demonstrating the matching and authorization logic in a controlled way, while leaving room for future evaluation on larger and noisier resident registries, duplicate-like entries, and more realistic update and maintenance workflows.
+
+=== OCR and Low Plate Matching Performance
+
+The main area with the clearest opportunity for improvement is plate-text recovery.
+While the detector successfully localized a plate in 43 of 44 test images and OCR returned a non-empty string in those same 43 cases, the exact plate match rate was only 28.21% across the 39 samples with usable plate labels.
+This gap shows that producing text is not the same as producing correct text, and it indicates that OCR remains the dominant bottleneck in the current pipeline.
+
+Several factors contribute to this result.
+License plates occupy a small region of the image, so even a correct detection may still produce a crop with limited character detail.
+Perspective distortion, motion blur, shadows, reflections, low contrast, and compression artifacts can all degrade OCR quality before recognition begins.
+In addition, visually similar characters such as `0/O`, `1/I`, `5/S`, and `8/B` are especially difficult to separate when the crop is imperfect.
+The preprocessing variants and dual-backend OCR strategy already improve robustness, but they do not yet fully eliminate these ambiguities.
+
+This limitation also explains why the project relies on fuzzy matching instead of exact string comparison alone.
+The authorization stage can still achieve useful decision accuracy because approximate text matches are often sufficient to recover the intended resident record.
+At the same time, this design introduces a predictable tradeoff: when OCR output is weak or partially incorrect, the matcher may still return a plausible but wrong resident, contributing to incorrect grants.
+The evaluation results reflect this behavior, with three false positives and one false negative at the decision level, while also showing that the overall decision pipeline remains effective despite imperfect text recovery.
+
+=== System-Level Tradeoffs
+
+The current implementation prioritizes transparency and modularity over aggressive optimization.
+Each stage writes interpretable artifacts, exposes intermediate outputs, and can be run independently through the CLI, which is useful for debugging and for academic analysis.
+The tradeoff is that the system is not yet optimized for low-latency deployment, large-scale throughput, or continuous real-time operation.
+
+More broadly, the pipeline still depends on hand-designed thresholds and heuristics in both OCR candidate ranking and resident matching.
+Those rules are reasonable for a compact prototype and make the system easier to inspect and explain, but they may require retuning when the plate format, imaging conditions, or resident database characteristics change.
+Future improvements should therefore focus on stronger OCR specialization, broader data coverage, and more systematic calibration of the matching stage so that the promising end-to-end behavior observed here can extend more reliably beyond the current evaluation setting.

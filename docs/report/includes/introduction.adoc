@@ -1,0 +1,23 @@
+== Introduction
+=== Problem Statement
+
+Parking access control remains a labor-intensive process at many residential and commercial facilities.
+Traditional approaches rely on physical access cards, keypads, or manned security checkpoints, all of which incur ongoing operational costs, introduce human error, and inconvenience authorized residents.
+An automated vision-based system that can identify vehicles by their license plates and grant or deny access in real time therefore offers a practical alternative.
+
+=== Motivation
+
+Automatic License Plate Recognition (ALPR) has matured significantly in recent years, driven by advances in deep learning-based object detection and optical character recognition.
+However, assembling a reliable, end-to-end ALPR pipeline for access control requires careful integration of multiple components, including detection, OCR, text normalization, and database matching, each with its own failure modes.
+This project explores how these components can be composed into a practical, configurable system with measurable performance.
+
+=== Objectives
+
+The primary objectives of this project are as follows:
+
+. *Detection:* Train a lightweight object detector to reliably localize license plates in images.
+. *Recognition:* Extract plate text using multi-backend OCR with robust preprocessing.
+. *Matching:* Match extracted text against an authorized resident database using exact and fuzzy matching.
+. *Decision:* Produce access grant/deny decisions with confidence scores.
+. *Evaluation:* Quantify system performance against ground-truth labels.
+. *Tooling:* Provide a reproducible, configurable pipeline accessible via a single CLI.

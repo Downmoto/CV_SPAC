@@ -1,0 +1,157 @@
+== OCR Methodology
+The OCR stage is responsible for converting a detected plate crop into a normalized alphanumeric string that can be matched against the resident database.
+This stage is intentionally more redundant than the rest of the pipeline because OCR quality is highly sensitive to blur, plate skew, contrast variation, specular reflections, and small character size.
+Rather than committing to a single preprocessing routine or a single recognizer, the system generates multiple plate representations and evaluates them with two OCR backends before selecting the most plausible result.
+
+=== OCR Design Rationale
+
+The detector returns only a localized crop, not a fronto-parallel or uniformly illuminated plate image.
+In practice, many failures arise from geometric distortion and local contrast loss rather than complete detector failure.
+For that reason, the OCR stage was designed around three principles: improve legibility through preprocessing, diversify recognition using multiple engines, and delay final selection until all candidates have been scored.
+
+This design also keeps the OCR component modular.
+Each preprocessing operation is implemented as a self-contained step, and the sequential pipeline order can be modified without changing the rest of the inference code.
+Likewise, the backend list is configurable through `configs/default.yaml`, allowing the OCR stage to be simplified or expanded without altering the surrounding pipeline.
+
+=== Preprocessing Strategy
+
+The OCR engine begins from the padded plate crop produced by the inference pipeline.
+That crop already preserves some surrounding context by extending the detector bounding box by 14% horizontally and 22% vertically, which reduces the risk of clipping border characters.
+The OCR module then generates several derived images intended to address common visual failure modes.
+
+.OCR Preprocessing Operations
+[cols="1,3", options="header"]
+|===
+| Operation | Purpose
+
+| Upscaling
+| Magnifies small plate crops by 2x or 3x using bicubic interpolation so thin strokes become easier to resolve.
+
+| Rectification
+| Estimates the dominant plate orientation from the largest contour and rotates the crop to reduce in-plane skew.
+
+| Perspective Flattening
+| Approximates the plate outline as a quadrilateral and applies a perspective warp to reduce projective distortion.
+
+| Grayscale Conversion
+| Removes color information when it is not useful for recognition and simplifies later enhancement steps.
+
+| Bilateral Denoising
+| Reduces local noise while preserving edges that define character boundaries.
+
+| CLAHE
+| Improves local contrast under uneven illumination without amplifying the entire image uniformly.
+
+| Otsu Binarization
+| Produces a global black-and-white separation when character strokes are already reasonably distinct.
+
+| Adaptive Thresholding
+| Uses local Gaussian thresholding to handle plates with non-uniform lighting or shadows.
+
+| Sharpening
+| Applies a simple enhancement kernel to strengthen stroke edges before recognition.
+|===
+
+In addition to these individual variants, the engine also evaluates a sequential preprocessing pipeline whose default order is:
+
+[source]
+----
+upscale -> rectify -> flatten -> grayscale -> denoise -> clahe -> sharpen -> binarize
+----
+
+This arrangement reflects a practical assumption: geometric corrections should occur before contrast enhancement and thresholding, while binary conversion should occur late in the process after noise and contrast have already been addressed.
+The engine does not assume that this sequence is always optimal, which is why the individual variants are preserved and evaluated alongside the full sequential version.
+
+=== OCR Backends and Text Extraction
+
+Two recognizers are used: EasyOCR and PaddleOCR.
+EasyOCR is configured with an uppercase alphanumeric allowlist and beam-search decoding, making it well suited to constrained plate text.
+PaddleOCR serves as a complementary recognizer with a different detection and recognition stack, which helps recover cases where one backend fragments the text or misreads individual characters.
+
+For each image variant, the engine queries both backends and collects multiple candidate strings.
+When a backend produces several text boxes, the system keeps both the single highest-confidence box and a left-to-right concatenation of all detected boxes.
+This is important for license plates because characters are sometimes split across multiple OCR regions even though they form one logical identifier.
+
+After recognition, all candidate strings are normalized before ranking.
+Normalization converts characters to uppercase, strips whitespace, and removes non-alphanumeric symbols.
+This makes downstream comparison more stable and prevents punctuation or spacing artifacts from being treated as meaningful differences.
+
+=== Candidate Ranking and Confidence Handling
+
+The final OCR output is selected from the full pool of backend and preprocessing candidates rather than from a single recognizer pass.
+Each candidate is ranked by a combination of OCR confidence and a lightweight plate-plausibility heuristic.
+The heuristic rewards strings whose lengths resemble typical plate formats, gives a small bonus to mixed letter-digit strings, and penalizes extremely short outputs or repetitive low-diversity strings that are more likely to be OCR noise.
+
+Formally, candidates are ordered by a tuple of the form `(confidence + plausibility, confidence, text_length)`.
+This ranking strategy is strong enough to suppress obviously poor reads while remaining simple to explain and modify.
+Because it is applied only at the selection stage, it can be removed or replaced later without changing the rest of the recognition pipeline.
+
+The OCR confidence threshold in the configuration should be interpreted as a control parameter rather than as a strict rejection gate.
+In the current implementation, low-confidence text can still be propagated for inspection and downstream evaluation, which is useful during error analysis even when the read would not be trusted in a production system.
+This behavior reflects the exploratory nature of the project and keeps failure cases visible instead of silently discarding them.
+
+=== Example Preprocessing Outputs
+
+To make the OCR stage interpretable, the project includes an export utility that saves intermediate images for a selected sample.
+The example below uses `Cars50`, which produces the final OCR output `PUI8BES` with confidence `0.976521`.
+
+
+==== Cars50 Source Images
+
+.Original input image
+image::{stepsimagedir}/01_original.png[original input, align="center", pdfwidth=4.8in]
+
+.Detected license plate bounding box
+image::{stepsimagedir}/02_detected_bbox.png[detected bounding box, align="center", pdfwidth=4.8in]
+
+.Padded plate crop used for OCR
+image::{stepsimagedir}/03_plate_crop.png[padded plate crop, align="center", pdfwidth=4.8in]
+
+==== Cars50 Geometric Variants
+
+.Upscaled crop
+image::{stepsimagedir}/04_upscaled.png[upscaled crop, align="center", pdfwidth=4.8in]
+
+.Rectified crop
+image::{stepsimagedir}/05_rectified_or_upscaled.png[rectified crop, align="center", pdfwidth=4.8in]
+
+.Perspective-flattened crop
+image::{stepsimagedir}/06_flattened.png[flattened crop, align="center", pdfwidth=4.8in]
+
+==== Cars50 Enhancement Variants
+
+.Denoised crop
+image::{stepsimagedir}/07_denoise.png[denoised crop, align="center", pdfwidth=4.8in]
+
+.CLAHE-enhanced crop
+image::{stepsimagedir}/08_clahe.png[clahe crop, align="center", pdfwidth=4.8in]
+
+.Otsu-thresholded crop
+image::{stepsimagedir}/09_otsu_threshold.png[otsu threshold, align="center", pdfwidth=4.8in]
+
+.Adaptive-thresholded crop
+image::{stepsimagedir}/10_adaptive_threshold.png[adaptive threshold, align="center", pdfwidth=4.8in]
+
+.Sharpened crop
+image::{stepsimagedir}/11_sharpen.png[sharpened crop, align="center", pdfwidth=4.8in]
+
+.Rectified grayscale crop
+image::{stepsimagedir}/12_rectified_gray.png[rectified grayscale crop, align="center", pdfwidth=4.8in]
+
+==== Cars50 Sequential Pipeline Output
+
+.Sequential preprocessing pipeline result
+image::{stepsimagedir}/13_sequential_pipeline.png[sequential pipeline output, align="center", pdfwidth=4.8in]
+
+.Cars50 OCR Export Summary
+[source]
+----
+image: data/processed/car_plate_kaggle/images/test/Cars50.png
+bbox_xyxy: (125, 70, 526, 255)
+detector_conf: 0.877898
+final_ocr_text: PUI8BES
+final_ocr_conf: 0.976521
+----
+
+Together, these artifacts provide a visual explanation of how the OCR stage transforms a detector crop into a final text prediction.
+They are also useful for debugging because they expose which preprocessing variants preserve character structure and which ones over-process the image.

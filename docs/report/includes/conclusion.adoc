@@ -1,0 +1,16 @@
+== Conclusion
+
+This project showed that an end-to-end smart parking access-control pipeline can be built as a coherent and practical computer vision system using a lightweight detector, a multi-variant OCR stage, and a database-driven matching module.
+Across the report, the system demonstrated strong plate localization performance, reliable generation of non-empty OCR outputs, and a decision pipeline that achieved useful access-control accuracy on the held-out test split.
+These results indicate that the overall architecture is sound and that the modular design choices made throughout the project were effective for both experimentation and evaluation.
+
+An important outcome of the project is that the strongest remaining challenge is now clearly identified.
+Detection is already robust on the current benchmark, while OCR accuracy remains the main factor limiting exact plate recovery and, by extension, the quality of downstream matching.
+This is a constructive result rather than a setback, because it narrows the path for future work and shows that further gains are likely to come from OCR-focused improvements rather than a full redesign of the system.
+
+The SPAC repository also provides a useful engineering foundation for continued development.
+Its unified CLI, centralized configuration, reproducible dataset preparation, exportable preprocessing steps, and evaluation artifacts make the pipeline easy to inspect, rerun, and extend.
+As a result, future work can build directly on the existing implementation by expanding the dataset, improving OCR specialization, calibrating the fuzzy matcher more systematically, and testing the system in more realistic parking scenarios.
+
+Overall, the project achieves its primary goal: it delivers a working and well-structured prototype for automated vehicle authorization while producing clear evidence about where the next performance improvements should be pursued.
+In that sense, the project serves not only as a successful end-to-end implementation, but also as a strong baseline for more capable future smart parking systems.

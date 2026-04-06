@@ -1,0 +1,137 @@
+== Evaluation
+
+The evaluation stage measures the SPAC pipeline at two levels: first as an end-to-end inference system that produces detections, OCR outputs, and access decisions for each image; and second as a labeled decision system whose outputs can be compared against manually curated ground truth.
+This two-level structure is important because a pipeline may still produce detections and OCR text even when the final access decision is wrong, and conversely may deny access correctly even when the recognized plate text is imperfect.
+
+=== Evaluation Procedure
+
+Pipeline outputs are first serialized to `outputs/predictions/inference_results.json` during inference.
+The evaluation module then converts those results into a normalized tabular form containing detector status, detector confidence, OCR text, OCR confidence, predicted decision, and matching metadata for each image.
+
+At the base level, evaluation computes aggregate statistics directly from inference output without requiring human labels.
+These metrics summarize how often the detector produced a bounding box, how often OCR returned non-empty text, how detector and OCR confidences behaved on average, and how many samples were assigned to the access-granted versus access-denied classes.
+
+For labeled evaluation, predictions are merged with the manually completed ground-truth CSV in `outputs/metrics/ground_truth_template.csv` using image filename as the join key.
+Decision quality is then measured by treating `Access Granted` as the positive class and computing accuracy, precision, recall, F1-score, and the confusion matrix.
+Plate recognition quality is evaluated separately through exact string matching between the normalized OCR output and the expected plate string.
+Rows whose expected plate is blank or marked as `UNKNOWN` are excluded from the exact-match calculation so that the OCR metric reflects only labeled plate values.
+
+=== Base Pipeline Metrics
+
+The current evaluation run contains 44 test images.
+Of these, the detector successfully localized a plate in 43 images, and OCR returned non-empty text in those same 43 cases.
+This yields a detection rate and OCR non-empty rate of 97.73% over the test split.
+
+.Base Pipeline Performance
+[cols="1,1", options="header"]
+|===
+| Metric | Value
+
+| Test samples
+| `44`
+
+| Successful detections
+| `43`
+
+| Detection rate
+| `97.73%`
+
+| Non-empty OCR outputs
+| `43`
+
+| OCR non-empty rate
+| `97.73%`
+
+| Predicted access granted
+| `9`
+
+| Predicted access denied
+| `35`
+
+| Mean detector confidence
+| `0.761242`
+
+| Mean OCR confidence
+| `0.587639`
+|===
+
+These base metrics indicate that the detection stage is generally reliable on the held-out split and that OCR usually produces some text once a crop is available.
+However, non-empty OCR output should not be interpreted as correct OCR output, which is why labeled decision and plate metrics are needed as a stricter measure of end-to-end quality.
+
+=== Decision-Level Results
+
+Using the labeled ground-truth CSV, the pipeline was evaluated on all 44 test images with no unmatched rows.
+The system achieved an overall decision accuracy of 90.91%, with precision of 66.67%, recall of 85.71%, and F1-score of 0.75 for the positive class `Access Granted`.
+
+.Decision Classification Metrics
+[cols="1,1", options="header"]
+|===
+| Metric | Value
+
+| Labeled samples
+| `44`
+
+| Accuracy
+| `90.91%`
+
+| Precision
+| `66.67%`
+
+| Recall
+| `85.71%`
+
+| F1-score
+| `0.7500`
+|===
+
+.Confusion Matrix
+[cols="1,1", options="header"]
+|===
+| Term | Count
+
+| True positives
+| `6`
+
+| True negatives
+| `34`
+
+| False positives
+| `3`
+
+| False negatives
+| `1`
+|===
+
+This confusion profile shows that the system is better at recovering truly authorized vehicles than at avoiding all incorrect grants.
+The single false negative indicates that one authorized vehicle was denied access, while the three false positives indicate three denied samples that were incorrectly granted.
+In an access-control setting, both error types matter, but they represent different operational risks and should be interpreted separately rather than through accuracy alone.
+
+=== Plate Recognition Results
+
+Plate-text evaluation is intentionally stricter than the access decision metric because it requires an exact match between the normalized OCR string and the expected ground-truth plate.
+Out of 44 labeled test samples, 39 contained a usable expected plate string after excluding 5 rows marked as blank or `UNKNOWN`.
+Among those 39 evaluable samples, the exact plate match rate was 28.21%.
+
+.Plate Recognition Metric
+[cols="1,1", options="header"]
+|===
+| Metric | Value
+
+| Plate-labeled samples
+| `39`
+
+| Excluded blank or unknown labels
+| `5`
+
+| Exact plate match rate
+| `28.21%`
+|===
+
+This comparatively low exact-match rate highlights the main weakness of the current system: OCR errors remain common even when plate detection succeeds.
+That result is consistent with the project’s broader design, where fuzzy matching and decision logic are necessary because exact OCR recovery is not yet robust enough to support strict string comparison alone.
+
+=== Evaluation Artifacts
+
+The evaluation stage writes two primary artifacts.
+The aggregate summary is stored in `outputs/metrics/evaluation_summary.json`, while the merged per-image inspection table is stored in `outputs/metrics/evaluation_rows.csv`.
+The second file is particularly useful for qualitative analysis because it exposes where failures originate, including missed detections, low-confidence OCR outputs, incorrect exact matches, and decision-level mismatches.

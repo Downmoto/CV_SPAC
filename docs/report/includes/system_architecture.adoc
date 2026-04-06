@@ -1,0 +1,19 @@
+== System Architecture
+.System Architecture Diagram
+image::architecture_diagram.png[System Architecture, align="center"]
+
+=== Pipeline Stages
+
+[arabic]
+. **Plate Detection** - A YOLOv8n model localizes the license plate region within the input image and returns a bounding box with an associated confidence score.
+. **Plate Cropping** - The detected region is extracted with configurable padding (14% horizontal, 22% vertical) to preserve plate context while limiting background noise.
+. **OCR Text Extraction** - A dual-backend OCR engine processes the cropped plate through multiple preprocessing variants and ranks candidate strings using OCR confidence and a plausibility heuristic.
+. **Resident Matching** - The extracted text is normalized and compared against a resident database using exact matching followed by fuzzy matching with a 90% similarity threshold.
+
+
+
+.System Architecture Overview
+[NOTE]
+====
+Each stage produces structured output (bounding box, text, match result), which is aggregated into a per-image result record and serialized to JSON for downstream evaluation.
+====

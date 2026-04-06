@@ -1,0 +1,150 @@
+== Project Repository and Tooling
+
+The SPAC project is organized as a modular Python repository in which each major pipeline stage is implemented as a separate package.
+This structure keeps data preparation, model training, inference, OCR, matching, and evaluation concerns isolated from one another while still allowing them to be orchestrated through a single command-line entrypoint.
+As a result, the repository supports both end-to-end execution and targeted experimentation on individual stages.
+
+=== Repository Structure
+
+At the top level, the repository separates source code, configuration, data artifacts, trained models, generated outputs, and report materials.
+The most important directories are shown below.
+
+[source]
+----
+CV_proj/
+├── configs/                    # centralized configuration files
+│   └── default.yaml            # default paths, thresholds, and hyperparameters
+├── data/                       # raw, processed, and database data assets
+│   ├── db/                     # resident access database csv files
+│   ├── processed/              # YOLO-formatted train, validation, and test data
+│   └── raw/                    # original Kaggle images and XML annotations
+├── docs/                       # report sources and generated evaluation tables
+│   ├── evaluation_tables.md    # generated markdown summary tables
+│   └── report/                 # AsciiDoc report files, includes, and report images
+├── models/                     # promoted model checkpoints used for inference
+│   └── plate_detector.pt       # trained detector weights used by the pipeline
+├── outputs/                    # runtime outputs from inference, evaluation, and debugging
+│   ├── demo/                   # rendered visual predictions and examples
+│   ├── metrics/                # evaluation summaries, csv rows, and ground-truth files
+│   ├── predictions/            # serialized end-to-end inference outputs
+│   └── preprocessing_steps/    # exported OCR preprocessing variants for inspection
+├── runs/                       # Ultralytics training artifacts and experiment logs
+│   └── detect/                 # detector training runs and checkpoint directories
+├── src/                        # implementation code for the SPAC pipeline
+│   ├── data/                   # dataset preparation and resident db generation
+│   ├── eval/                   # evaluation logic and report table generation
+│   ├── infer/                  # end-to-end inference pipeline and exports
+│   ├── matching/               # exact and fuzzy plate matching logic
+│   ├── ocr/                    # OCR engine and preprocessing strategy
+│   ├── train/                  # detector training wrapper and training utilities
+│   ├── utils/                  # shared helper functions
+│   └── main.py                 # top-level workflow runner cli
+├── README.md                   # project overview and usage instructions
+└── requirements.txt            # Python dependency list
+----
+
+This layout is intentionally straightforward rather than framework-heavy.
+Source files are kept under `src/`, report assets are grouped under `docs/report/`, and generated artifacts are separated into `outputs/`, `runs/`, and `models/` so that experiment products do not become entangled with implementation code.
+
+=== CLI Workflow Runner
+
+The central entrypoint for the repository is `src.main`, which acts as a workflow runner for all major project stages.
+Rather than requiring each stage to be invoked manually with different paths and parameters, the CLI reads from `configs/default.yaml` and dispatches the requested stage-specific modules with the appropriate arguments.
+
+This design provides two practical benefits.
+First, it reduces repetition by keeping all default paths and hyperparameters in a single configuration file.
+Second, it makes the project easier to reproduce because the same command structure can be used for partial runs such as inference-only experiments or complete end-to-end execution.
+
+.CLI Actions
+[cols="1,2,2", options="header"]
+|===
+| Flag | Function | Invoked Component
+
+| `--download`
+| Download and unzip the Kaggle dataset
+| Kaggle CLI
+
+| `--prepare`
+| Convert raw annotations into YOLO format
+| `src.data.prepare_kaggle_car_plate_dataset`
+
+| `--seed-db`
+| Generate the resident access database
+| `src.data.create_sample_db`
+
+| `--train`
+| Train the plate detector
+| `src.train.train_detector`
+
+| `--infer`
+| Run end-to-end inference
+| `src.infer.run_inference`
+
+| `--eval`
+| Evaluate predictions and decisions
+| `src.eval.evaluate_pipeline`
+
+| `--report`
+| Generate report-ready metric tables
+| `src.eval.generate_report_tables`
+
+| `--all`
+| Execute the full workflow in sequence
+| Combined pipeline
+|===
+
+The same entrypoint also supports targeted overrides, such as evaluating with a custom ground-truth CSV or running inference on a single image instead of the default test directory.
+This makes the CLI suitable both for reproducible report generation and for controlled debugging of individual samples during development.
+
+=== Module Organization
+
+The `src/` directory is divided into task-specific subpackages that mirror the major stages of the SPAC pipeline.
+This organization keeps the codebase easy to navigate and makes it clear which module is responsible for each stage of the workflow.
+
+.Source Modules
+[cols="1,3", options="header"]
+|===
+| Module | Responsibility
+
+| `src.data`
+| Dataset conversion, Kaggle data preparation, and resident database generation.
+
+| `src.train`
+| Detector training and training-stage wrappers around Ultralytics YOLO.
+
+| `src.infer`
+| End-to-end inference pipeline, image processing exports, and detector-to-decision execution.
+
+| `src.ocr`
+| OCR engine, preprocessing variants, backend coordination, and candidate ranking.
+
+| `src.matching`
+| Exact and fuzzy matching against the resident plate database.
+
+| `src.eval`
+| Metric computation, ground-truth integration, and report-table generation.
+
+| `src.utils`
+| Shared utility helpers such as plate-text normalization.
+|===
+
+This separation is especially useful for a report-driven project because each subsystem can be described, evaluated, and revised independently.
+For example, OCR preprocessing can be improved without changing detector training logic, and evaluation rules can be updated without touching the inference pipeline itself.
+
+=== Configuration and Artifacts
+
+The repository relies on `configs/default.yaml` as its primary configuration source.
+That file stores dataset paths, training settings, inference thresholds, OCR backend choices, evaluation settings, and artifact destinations.
+Using a centralized configuration file avoids scattering hardcoded values across multiple scripts and helps keep experimental settings synchronized across stages.
+
+Generated outputs are also stored in a stage-aware way.
+Training artifacts are written under `runs/detect/outputs/`, inference outputs under `outputs/predictions/` and `outputs/demo/`, evaluation summaries under `outputs/metrics/`, and OCR inspection images under `outputs/preprocessing_steps/` or the report-local image copies in `docs/report/images/steps/`.
+This separation makes it easier to trace which files belong to which stage and simplifies report preparation.
+
+=== Supporting Tooling
+
+In addition to the main workflow runner, the repository includes smaller utilities that support experimentation and reporting.
+Examples include the preprocessing export script for OCR inspection, the ground-truth template generator for manual labeling, and the report-table generator that converts raw metrics into compact summary tables.
+
+Taken together, these tools make the repository more than a single inference script.
+They provide a lightweight but complete experimentation environment in which data preparation, detector training, OCR debugging, evaluation, and report production can all be managed from the same codebase.

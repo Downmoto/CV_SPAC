@@ -1,0 +1,35 @@
+= Smart Parking Access Control (SPAC): An End-to-End License Plate Recognition System for Automated Vehicle Authorization
+:author: Arad Fadaei, Sia Tedy
+:toc: left
+// :toclevels: 3
+:icons: font
+:source-highlighter: highlightjs
+:imagesdir: images
+:includedir: includes
+:stepsimagedir: steps
+:figure-caption: Figure
+:table-caption: Table
+:doctype: article
+:title-page: Yes
+:title-logo-image: image:logo.jpg[top=10%,align=center,pdfwidth=3in]
+
+
+include::{includedir}/abstract.adoc[]
+
+include::{includedir}/introduction.adoc[]
+
+include::{includedir}/system_architecture.adoc[]
+
+include::{includedir}/dataset.adoc[]
+
+include::{includedir}/training.adoc[]
+
+include::{includedir}/ocr_methodology.adoc[]
+
+include::{includedir}/evaluation.adoc[]
+
+include::{includedir}/project_repository_tooling.adoc[]
+
+include::{includedir}/limitations_and_challenges.adoc[]
+
+include::{includedir}/conclusion.adoc[]

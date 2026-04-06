@@ -1,0 +1,5 @@
+image: data/processed/car_plate_kaggle/images/test/Cars50.png
+bbox_xyxy: (125, 70, 526, 255)
+detector_conf: 0.877898
+final_ocr_text: PUI8BES
+final_ocr_conf: 0.976521

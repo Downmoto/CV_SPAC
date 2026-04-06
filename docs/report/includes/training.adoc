@@ -1,0 +1,92 @@
+== Training
+
+The training stage focuses exclusively on the license plate detector.
+Its objective is to learn a single-class object detection model that can localize license plates reliably enough to support the downstream OCR and access-control stages.
+Because the detector is the entry point to the full pipeline, its role is not only to maximize localization accuracy in isolation, but also to produce crops of sufficient quality for later text recognition.
+
+=== Model Selection
+
+The detector was trained using the YOLOv8n architecture.
+This variant was selected as a practical balance between model capacity and computational cost.
+For a single-class detection problem with a relatively modest dataset size, the nano model is large enough to learn plate localization while remaining lightweight enough for repeated experimentation and practical deployment.
+
+Another advantage of this choice is that the detector can be integrated into the rest of the pipeline without adding significant latency.
+Since the SPAC system is intended as an end-to-end access-control workflow rather than a standalone detection benchmark, the detector was chosen with whole-system usability in mind rather than benchmark-oriented optimization alone.
+
+=== Training Configuration
+
+Training was executed through the Ultralytics YOLO training interface using the centralized project configuration.
+The processed YOLO-format dataset description was provided through `data/processed/car_plate_kaggle/dataset.yaml`, and the detector was initialized from pretrained `yolov8n.pt` weights.
+
+.Detector Training Configuration
+[cols="1,1", options="header"]
+|===
+| Parameter | Value
+
+| Model
+| `yolov8n.pt`
+
+| Dataset YAML
+| `data/processed/car_plate_kaggle/dataset.yaml`
+
+| Epochs
+| `80`
+
+| Image Size
+| `640`
+
+| Batch Size
+| `16`
+
+| Device
+| `0` (GPU)
+
+| Output Name
+| `detector_train`
+|===
+
+The training wrapper itself is intentionally minimal.
+Its purpose is to expose the core experimental parameters while delegating the optimization loop, validation procedure, checkpointing, and metric reporting to the underlying YOLO implementation.
+This keeps the project code concise and makes the detector stage easy to reproduce from configuration alone.
+
+=== Training Procedure
+
+During training, the detector was fine-tuned on a single class, `plate`, using the prepared dataset split and the standard Ultralytics validation cycle at the end of each epoch.
+Metrics were recorded continuously in `runs/detect/outputs/detector_train/results.csv`, which served as the primary artifact for tracking convergence and selecting the best checkpoint.
+
+Model selection was based on validation `mAP50-95`, since that metric is stricter than `mAP50` and better reflects localization quality across multiple IoU thresholds.
+After training, the best detector weights can be copied from the training output directory into `models/plate_detector.pt`, which is the path consumed by the inference pipeline.
+
+=== Training Results
+
+The training log contains 80 recorded epochs.
+The best validation checkpoint occurred at epoch 57, where the model reached a precision of 0.97216, recall of 0.83673, `mAP50` of 0.87535, and `mAP50-95` of 0.51473.
+The final epoch achieved slightly lower `mAP50-95`, indicating that the strongest detector snapshot was obtained before the end of the run rather than at the last saved epoch.
+
+.Detector Snapshot Comparison
+[cols="1,1,1,1,1", options="header"]
+|===
+| Snapshot | Epoch | Precision | Recall | `mAP50` / `mAP50-95`
+
+| Best validation checkpoint
+| `57`
+| `0.97216`
+| `0.83673`
+| `0.87535 / 0.51473`
+
+| Final recorded epoch
+| `80`
+| `0.97545`
+| `0.81096`
+| `0.87023 / 0.46343`
+|===
+
+The overall training trajectory shows rapid improvement during the early epochs, followed by a broad performance plateau during the middle and later stages of training.
+This pattern suggests that the detector converged relatively early and that continued training mainly refined or fluctuated performance rather than producing large late-stage gains.
+Accordingly, the best checkpoint from epoch 57 is the more appropriate model for deployment within the SPAC pipeline.
+
+=== Training Artifacts
+
+The detector training stage produces a standard Ultralytics experiment directory containing weights, per-epoch metrics, and supporting visualizations.
+For this project, the primary artifact directory is `runs/detect/outputs/detector_train/`.
+The most important outputs are the recorded training metrics in `results.csv` and the best-performing detector checkpoint, which can then be promoted to `models/plate_detector.pt` for inference.

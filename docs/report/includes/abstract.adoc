@@ -1,0 +1,6 @@
+[abstract]
+== Abstract
+This report presents the design, implementation, and evaluation of *Smart Parking Access Control (SPAC)*, an end-to-end computer vision system that automates vehicle authorization at parking facilities.
+The system integrates YOLOv8 object detection for license plate localization, a dual-backend OCR engine with ten preprocessing variants for robust text extraction, and a fuzzy-matching module for resident database lookup.
+Evaluated on 44 test images from the Kaggle Car Plate Detection dataset, the system achieves a 97.7% plate detection rate, 90.9% decision accuracy, and 85.7% recall for authorized residents.
+The pipeline is configurable through a centralized YAML specification and exposed through a unified command-line interface that supports all workflow stages from data preparation through evaluation.
