@@ -21,7 +21,7 @@ epochs recorded: 80
 | pred_access_granted | 9 |
 | pred_access_denied | 35 |
 | mean_detector_conf | 0.761242 |
-| mean_ocr_conf | 0.690077 |
+| mean_ocr_conf | 0.587639 |
 
 ## decision metrics (labeled)
 
@@ -45,7 +45,7 @@ epochs recorded: 80
 | plate metric | value |
 |---|---:|
 | plate_labeled_samples | 39 |
-| plate_exact_match_rate | 0.256410 |
+| plate_exact_match_rate | 0.282051 |
 
 ## artifact paths
 

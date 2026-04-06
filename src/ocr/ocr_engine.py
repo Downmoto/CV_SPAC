@@ -34,18 +34,23 @@ class OCREngine:
 
         score = 0.0
 
+        # length scoring: strongly reward plate-like lengths, harshly penalize very short
         if 5 <= length <= 10:
-            score += 0.20
+            score += 0.30
         elif length in (4, 11):
-            score += 0.10
-        elif length <= 2:
-            score -= 0.25
-
-        if letters > 0 and digits > 0:
             score += 0.15
+        elif length == 3:
+            score -= 0.15
+        elif length <= 2:
+            score -= 0.50
+
+        # mixed alpha+digit is a strong plate signal
+        if letters > 0 and digits > 0:
+            score += 0.20
         elif length >= 5:
             score -= 0.05
 
+        # repeated characters with low uniqueness
         if length >= 5 and unique <= 2:
             score -= 0.15
 
@@ -161,7 +166,8 @@ class OCREngine:
         ]
         return variants
 
-    def _read_best(self, image_bgr: np.ndarray) -> tuple[str, float]:
+    def _read_best(self, image_bgr: np.ndarray) -> list[tuple[str, float]]:
+        # returns multiple candidates: single best box + concatenated full plate
         reader = self._ensure_easy_reader()
         image_rgb = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2RGB)
         results = reader.readtext(
@@ -175,6 +181,11 @@ class OCREngine:
             link_threshold=0.2,
         )
 
+        candidates: list[tuple[str, float]] = []
+        if not results:
+            return candidates
+
+        # single best box
         best_text = ""
         best_conf = 0.0
         for _, text, conf in results:
@@ -185,20 +196,35 @@ class OCREngine:
                 best_conf = score
             elif score == best_conf and len(candidate) > len(best_text):
                 best_text = candidate
+        if best_text:
+            candidates.append((best_text, best_conf))
 
-        return best_text, best_conf
+        # concatenated: sort boxes left-to-right by x midpoint, join text
+        if len(results) > 1:
+            sorted_boxes = sorted(
+                results, key=lambda r: (r[0][0][0] + r[0][2][0]) / 2
+            )
+            joined = "".join(normalize_plate_text(str(r[1])) for r in sorted_boxes)
+            avg_conf = sum(float(r[2]) for r in sorted_boxes) / len(sorted_boxes)
+            if joined and joined != best_text:
+                candidates.append((joined, avg_conf))
 
-    def _read_best_paddle(self, image_bgr: np.ndarray) -> tuple[str, float]:
+        return candidates
+
+    def _read_best_paddle(self, image_bgr: np.ndarray) -> list[tuple[str, float]]:
+        # returns multiple candidates: single best box + concatenated full plate
         reader = self._ensure_paddle_reader()
         results = reader.ocr(image_bgr, cls=True)
 
+        candidates: list[tuple[str, float]] = []
+        if not results:
+            return candidates
+
+        lines = results[0] if isinstance(results, list) and len(results) > 0 else []
+        parsed: list[tuple[list, str, float]] = []
         best_text = ""
         best_conf = 0.0
 
-        if not results:
-            return best_text, best_conf
-
-        lines = results[0] if isinstance(results, list) and len(results) > 0 else []
         for item in lines:
             if not item or len(item) < 2:
                 continue
@@ -208,13 +234,28 @@ class OCREngine:
             text = str(text_conf[0])
             conf = float(text_conf[1])
             candidate = normalize_plate_text(text)
+            parsed.append((item[0], candidate, conf))
             if conf > best_conf:
                 best_text = candidate
                 best_conf = conf
             elif conf == best_conf and len(candidate) > len(best_text):
                 best_text = candidate
 
-        return best_text, best_conf
+        if best_text:
+            candidates.append((best_text, best_conf))
+
+        # concatenated: sort by x midpoint of bounding polygon, join text
+        if len(parsed) > 1:
+            sorted_boxes = sorted(
+                parsed,
+                key=lambda p: sum(pt[0] for pt in p[0]) / max(1, len(p[0])),
+            )
+            joined = "".join(p[1] for p in sorted_boxes)
+            avg_conf = sum(p[2] for p in sorted_boxes) / len(sorted_boxes)
+            if joined and joined != best_text:
+                candidates.append((joined, avg_conf))
+
+        return candidates
 
     def read_plate(self, image_bgr) -> tuple[str, float]:
         if image_bgr is None:
@@ -230,25 +271,25 @@ class OCREngine:
 
             if "easyocr" in self.backends:
                 try:
-                    candidates.append(self._read_best(variant))
+                    candidates.extend(self._read_best(variant))
                 except Exception:
                     pass
 
             if "paddleocr" in self.backends:
                 try:
-                    candidates.append(self._read_best_paddle(variant))
+                    candidates.extend(self._read_best_paddle(variant))
                 except Exception:
                     pass
 
             if not candidates:
                 continue
 
-            text, conf = max(candidates, key=lambda c: self._candidate_rank(c[0], c[1]))
-            rank = self._candidate_rank(text, conf)
-            if rank > best_rank:
-                best_text = text
-                best_conf = conf
-                best_rank = rank
+            for text, conf in candidates:
+                rank = self._candidate_rank(text, conf)
+                if rank > best_rank:
+                    best_text = text
+                    best_conf = conf
+                    best_rank = rank
 
         if best_conf < self.min_conf:
             return best_text, best_conf
