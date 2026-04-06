@@ -2,6 +2,9 @@
 
 license plate detection, OCR extraction, resident matching, and access decisions, all from a single CLI.
 
+## final report
+The final report can be found in [docs/report/report.pdf](https://github.com/Downmoto/CV_SPAC/blob/main/docs/report/report.pdf)
+
 ## setup
 
 ```bash
