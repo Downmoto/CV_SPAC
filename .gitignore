@@ -24,6 +24,7 @@ outputs/metrics/*
 outputs/demo/*
 !outputs/predictions/.gitkeep
 !outputs/metrics/.gitkeep
+!outputs/metrics/ground_truth_template.csv
 !outputs/demo/.gitkeep
 
 # pretrained base weights (auto-downloaded)

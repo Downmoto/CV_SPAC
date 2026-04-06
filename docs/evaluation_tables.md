@@ -18,8 +18,8 @@ epochs recorded: 80
 | detection_rate | 0.977273 |
 | ocr_nonempty | 43 |
 | ocr_nonempty_rate | 0.977273 |
-| pred_access_granted | 0 |
-| pred_access_denied | 44 |
+| pred_access_granted | 9 |
+| pred_access_denied | 35 |
 | mean_detector_conf | 0.761242 |
 | mean_ocr_conf | 0.690077 |
 
@@ -30,17 +30,17 @@ epochs recorded: 80
 | labeled_samples | 44 |
 | unlabeled_samples | 0 |
 | positive_label | Access Granted |
-| accuracy | 1.000000 |
-| precision | 0.000000 |
-| recall | 0.000000 |
-| f1 | 0.000000 |
+| accuracy | 0.909091 |
+| precision | 0.666667 |
+| recall | 0.857143 |
+| f1 | 0.750000 |
 
 | confusion term | count |
 |---|---:|
-| tp | 0 |
-| tn | 44 |
-| fp | 0 |
-| fn | 0 |
+| tp | 6 |
+| tn | 34 |
+| fp | 3 |
+| fn | 1 |
 
 | plate metric | value |
 |---|---:|
