@@ -94,8 +94,53 @@ def run_prepare(cfg: dict[str, Any]) -> None:
     run_module("src.data.prepare_kaggle_car_plate_dataset", args)
 
 
-def run_seed_db() -> None:
-    run_module("src.data.create_sample_db", [])
+def run_seed_db(cfg: dict[str, Any], ground_truth_csv_override: str | None = None) -> None:
+    paths = cfg.get("paths", {})
+    ds = cfg.get("dataset", {})
+    db_seed = cfg.get("db_seed", {})
+
+    gt_csv = Path(
+        ground_truth_csv_override
+        or str(paths.get("ground_truth_csv", "outputs/metrics/ground_truth_template.csv"))
+    )
+    inference_json = Path(str(paths.get("output_json", "outputs/predictions/inference_results.json")))
+
+    if not gt_csv.exists():
+        if inference_json.exists():
+            print(
+                "ground-truth csv not found for seed-db; "
+                f"auto-generating template at {gt_csv} from {inference_json}"
+            )
+            run_module(
+                "src.eval.create_ground_truth_template",
+                [
+                    "--inference-json",
+                    str(inference_json),
+                    "--output-csv",
+                    str(gt_csv),
+                ],
+            )
+        else:
+            raise FileNotFoundError(
+                "seed-db requires a ground-truth csv with expected_plate values. "
+                f"missing: {gt_csv}. also could not auto-generate because inference json is missing: {inference_json}. "
+                "run --infer first, or provide --ground-truth-csv to an existing file."
+            )
+
+    args = [
+        "--ground-truth-csv",
+        str(gt_csv),
+        "--inference-json",
+        str(inference_json),
+        "--fallback-to-ocr",
+        "--output-csv",
+        str(paths.get("resident_db_csv", "data/db/residents.csv")),
+        "--seed",
+        str(db_seed.get("seed", ds.get("seed", 42))),
+        "--active-ratio",
+        str(db_seed.get("active_ratio", 0.85)),
+    ]
+    run_module("src.data.create_sample_db", args)
 
 
 def run_train(cfg: dict[str, Any]) -> None:
@@ -208,7 +253,7 @@ def main() -> None:
     if args.download:
         run_download(cfg, args.force_download)
     if args.seed_db:
-        run_seed_db()
+        run_seed_db(cfg, args.ground_truth_csv)
     if args.prepare:
         run_prepare(cfg)
     if args.train:

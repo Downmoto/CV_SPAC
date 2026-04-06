@@ -25,6 +25,10 @@ dataset:
   plate_class_name: plate
   clear_out_dir: false
 
+db_seed:
+  seed: 42
+  active_ratio: 0.85
+
 training:
   data_yaml: data/processed/car_plate_kaggle/dataset.yaml
   model: yolov8n.pt

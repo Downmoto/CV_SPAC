@@ -18,7 +18,7 @@ important:
 quick help:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --help
+python -m src.main --help
 ```
 
 ### why this exists
@@ -45,31 +45,31 @@ basic action examples:
 
 ```bash
 # download and unzip raw kaggle dataset
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --download
+python -m src.main --download
 
 # force fresh re-download
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --download --force-download
+python -m src.main --download --force-download
 
 # create sample resident db
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --seed-db
+python -m src.main --seed-db
 
 # prepare dataset (kaggle xml -> yolo splits)
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --prepare
+python -m src.main --prepare
 
 # train detector
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --train
+python -m src.main --train
 
 # run inference on default test split from config
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --infer
+python -m src.main --infer
 
 # run base evaluation
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --eval
+python -m src.main --eval
 
 # run evaluation with ground truth when csv exists
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --eval --use-ground-truth
+python -m src.main --eval --use-ground-truth
 
 # generate markdown report tables
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --report
+python -m src.main --report
 ```
 
 ### common combined workflows
@@ -77,31 +77,31 @@ basic action examples:
 train + infer:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --train --infer
+python -m src.main --train --infer
 ```
 
 infer + evaluate + report:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --infer --eval --report
+python -m src.main --infer --eval --report
 ```
 
 evaluate with ground truth + report:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --eval --use-ground-truth --report
+python -m src.main --eval --use-ground-truth --report
 ```
 
 full pipeline (long-running, includes training):
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --all
+python -m src.main --all
 ```
 
 download + prepare only:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --download --prepare
+python -m src.main --download --prepare
 ```
 
 ### input overrides
@@ -111,25 +111,25 @@ the cli uses config defaults, but you can override at runtime.
 single image inference:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --infer --image path/to/image.jpg
+python -m src.main --infer --image path/to/image.jpg
 ```
 
 directory inference:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --infer --image-dir path/to/images
+python -m src.main --infer --image-dir path/to/images
 ```
 
 use a custom ground truth file:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --eval --use-ground-truth --ground-truth-csv path/to/gt.csv
+python -m src.main --eval --use-ground-truth --ground-truth-csv path/to/gt.csv
 ```
 
 use a custom config file:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.main --config configs/default.yaml --infer
+python -m src.main --config configs/default.yaml --infer
 ```
 
 ### default outputs produced by actions
@@ -180,6 +180,15 @@ if evaluation says ground truth not found:
 - pass `--ground-truth-csv` with a valid file, or
 - run base eval without `--use-ground-truth`.
 
+if `--seed-db` says ground truth not found:
+- it now auto-generates the template from `outputs/predictions/inference_results.json` when possible,
+- if inference json is missing too, run `--infer` first, then re-run `--seed-db`.
+
+if `--seed-db` says expected_plate values are missing:
+- either fill `expected_plate` in your ground-truth csv, or
+- re-run `--seed-db` with inference available (main flow already enables fallback),
+- fallback mode will use `ocr_text` from inference json to build residents when expected plates are blank.
+
 if inference fails because weights are missing:
 - train first with `--train`, then copy best weights to `models/plate_detector.pt` if needed.
 
@@ -201,19 +210,19 @@ so you can download/unzip datasets locally without committing large image files.
 ## 1) Environment setup
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
 
 for kaggle download support:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m pip install kaggle
+python -m pip install kaggle
 ```
 
 ## 2) Create a sample resident database
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.data.create_sample_db
+python -m src.data.create_sample_db
 ```
 
 This creates `data/db/residents.csv`.
@@ -223,7 +232,7 @@ This creates `data/db/residents.csv`.
 prepare the kaggle dataset first (see `src/data/prepare_dataset.md` and `src/data/kaggle_download_instructions.md`).
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.data.prepare_kaggle_car_plate_dataset \
+python -m src.data.prepare_kaggle_car_plate_dataset \
   --raw-dir data/raw/car-plate-detection \
   --out-dir data/processed/car_plate_kaggle \
   --clear-out-dir
@@ -232,7 +241,7 @@ prepare the kaggle dataset first (see `src/data/prepare_dataset.md` and `src/dat
 then train using the generated dataset yaml:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.train.train_detector \
+python -m src.train.train_detector \
   --data-yaml data/processed/car_plate_kaggle/dataset.yaml \
   --model yolov8n.pt \
   --epochs 50 \
@@ -252,13 +261,13 @@ cp runs/detect/outputs/detector_train/weights/best.pt models/plate_detector.pt
 Single image:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.infer.run_inference --image path/to/image.jpg
+python -m src.infer.run_inference --image path/to/image.jpg
 ```
 
 Directory of images:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.infer.run_inference --image-dir path/to/images
+python -m src.infer.run_inference --image-dir path/to/images
 ```
 
 Outputs:
@@ -270,7 +279,7 @@ Outputs:
 Base metrics from inference output:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.eval.evaluate_pipeline \
+python -m src.eval.evaluate_pipeline \
   --inference-json outputs/predictions/inference_results.json \
   --output-json outputs/metrics/evaluation_summary.json
 ```
@@ -278,7 +287,7 @@ Base metrics from inference output:
 Create ground-truth template for decision-level evaluation:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.eval.create_ground_truth_template \
+python -m src.eval.create_ground_truth_template \
   --inference-json outputs/predictions/inference_results.json \
   --output-csv outputs/metrics/ground_truth_template.csv
 ```
@@ -286,7 +295,7 @@ Create ground-truth template for decision-level evaluation:
 After filling expected decision and expected plate values, run labeled evaluation:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.eval.evaluate_pipeline \
+python -m src.eval.evaluate_pipeline \
   --inference-json outputs/predictions/inference_results.json \
   --ground-truth-csv outputs/metrics/ground_truth_template.csv \
   --output-json outputs/metrics/evaluation_summary.json \
@@ -296,7 +305,7 @@ After filling expected decision and expected plate values, run labeled evaluatio
 Generate report-ready markdown tables:
 
 ```bash
-/Users/arad/Developer/CV_proj/.venv/bin/python -m src.eval.generate_report_tables \
+python -m src.eval.generate_report_tables \
   --detector-results-csv runs/detect/outputs/detector_train/results.csv \
   --evaluation-summary-json outputs/metrics/evaluation_summary.json \
   --output-md docs/evaluation_tables.md
