@@ -179,8 +179,10 @@ python -m src.main --infer
 python -m src.eval.create_ground_truth_template --inference-json outputs/predictions/inference_results.json --output-csv outputs/metrics/ground_truth_template.csv
 python -m src.data.create_sample_db --ground-truth-csv outputs/metrics/ground_truth_template.csv --output-csv data/db/residents.csv
 python -m src.main --infer --eval --report --use-ground-truth
-python -m src.main --all #runs entire process from start to finish (not ground truth generation or second DB pass)
+python -m src.main --all
 ----
+
+The `--all` flag runs the automated pipeline stages in sequence, but it does not include manual ground-truth labeling or the final database regeneration step that follows labeling.
 
 In the evaluation workflow, the ground-truth file created by `src.eval.create_ground_truth_template` starts as a blank template with the columns `image_path`, `expected_decision`, `expected_plate`, and `notes`.
 That file must then be labeled manually by reviewing each test image and filling in the expected access decision and the normalized expected plate string.
