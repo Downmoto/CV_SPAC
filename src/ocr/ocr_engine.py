@@ -132,9 +132,90 @@ class OCREngine:
         resized = cv2.resize(crop, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
         return resized
 
+    def _flatten_plate(self, image_bgr: np.ndarray) -> np.ndarray:
+        """correct perspective distortion by finding the plate quadrilateral
+        and warping it to a flat rectangle."""
+        h, w = image_bgr.shape[:2]
+        if h < 10 or w < 10:
+            return image_bgr
+
+        gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray, (5, 5), 0)
+        edges = cv2.Canny(blur, 30, 120)
+
+        # aggressively close gaps so text merges into the plate body
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 5))
+        closed = cv2.morphologyEx(edges, cv2.MORPH_CLOSE, kernel, iterations=2)
+        closed = cv2.dilate(closed, cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5)), iterations=2)
+
+        contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        if not contours:
+            return image_bgr
+
+        largest = max(contours, key=cv2.contourArea)
+        area = cv2.contourArea(largest)
+        if area < 0.1 * h * w:
+            return image_bgr
+
+        # try progressively looser epsilon to find a 4-corner approximation
+        peri = cv2.arcLength(largest, True)
+        quad = None
+        for eps_factor in [0.02, 0.03, 0.04, 0.05, 0.06, 0.08]:
+            approx = cv2.approxPolyDP(largest, eps_factor * peri, True)
+            if len(approx) == 4:
+                quad = approx
+                break
+
+        # fallback: use the 4 corners of the minimum area bounding rect
+        if quad is None:
+            rect = cv2.minAreaRect(largest)
+            quad = cv2.boxPoints(rect).astype(np.int32)
+
+        pts = quad.reshape(4, 2).astype(np.float32)
+
+        # order points: top-left, top-right, bottom-right, bottom-left
+        s = pts.sum(axis=1)
+        d = np.diff(pts, axis=1).ravel()
+        ordered = np.array([
+            pts[np.argmin(s)],   # top-left
+            pts[np.argmin(d)],   # top-right
+            pts[np.argmax(s)],   # bottom-right
+            pts[np.argmax(d)],   # bottom-left
+        ], dtype=np.float32)
+
+        # compute output dimensions
+        w_top = np.linalg.norm(ordered[1] - ordered[0])
+        w_bot = np.linalg.norm(ordered[2] - ordered[3])
+        h_left = np.linalg.norm(ordered[3] - ordered[0])
+        h_right = np.linalg.norm(ordered[2] - ordered[1])
+        out_w = int(max(w_top, w_bot))
+        out_h = int(max(h_left, h_right))
+
+        if out_w < 10 or out_h < 10:
+            return image_bgr
+
+        # skip if the warp would barely change anything (nearly rectangular already)
+        src_rect_area = out_w * out_h
+        if src_rect_area > 0 and abs(area - src_rect_area) / src_rect_area < 0.03:
+            return image_bgr
+
+        dst = np.array([
+            [0, 0],
+            [out_w - 1, 0],
+            [out_w - 1, out_h - 1],
+            [0, out_h - 1],
+        ], dtype=np.float32)
+
+        mat = cv2.getPerspectiveTransform(ordered, dst)
+        warped = cv2.warpPerspective(image_bgr, mat, (out_w, out_h),
+                                     flags=cv2.INTER_CUBIC,
+                                     borderMode=cv2.BORDER_REPLICATE)
+        return warped
+
     def _prepare_variants(self, image_bgr: np.ndarray) -> list[np.ndarray]:
         up = self._upscale(image_bgr)
         rectified = self._rectify_plate(up) if self.use_rectification else up
+        flattened = self._flatten_plate(rectified)
         gray = cv2.cvtColor(up, cv2.COLOR_BGR2GRAY)
         gray_rect = cv2.cvtColor(rectified, cv2.COLOR_BGR2GRAY)
 
@@ -157,6 +238,7 @@ class OCREngine:
         variants = [
             up,
             rectified,
+            flattened,
             cv2.cvtColor(denoise, cv2.COLOR_GRAY2BGR),
             cv2.cvtColor(clahe, cv2.COLOR_GRAY2BGR),
             cv2.cvtColor(otsu, cv2.COLOR_GRAY2BGR),

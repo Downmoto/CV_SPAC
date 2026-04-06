@@ -103,12 +103,6 @@ evaluate with ground truth + report:
 python -m src.main --eval --use-ground-truth --report
 ```
 
-extract crops + train crnn + re-infer + evaluate:
-
-```bash
-python -m src.main --extract-crops --train-ocr --infer --eval --use-ground-truth --report
-```
-
 generate ground-truth template from latest inference output:
 
 ```bash

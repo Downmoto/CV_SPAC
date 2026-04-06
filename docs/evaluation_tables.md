@@ -4,10 +4,10 @@
 
 | snapshot | epoch | precision | recall | mAP50 | mAP50-95 |
 |---|---:|---:|---:|---:|---:|
-| best (by mAP50-95) | 57 | 0.9722 | 0.8367 | 0.8753 | 0.5147 |
-| last recorded | 80 | 0.9755 | 0.8110 | 0.8702 | 0.4634 |
+| best (by mAP50-95) | 1 | 0.0036 | 0.9592 | 0.4633 | 0.2003 |
+| last recorded | 1 | 0.0036 | 0.9592 | 0.4633 | 0.2003 |
 
-epochs recorded: 80
+epochs recorded: 1
 
 ## pipeline base metrics
 
@@ -20,8 +20,8 @@ epochs recorded: 80
 | ocr_nonempty_rate | 0.977273 |
 | pred_access_granted | 9 |
 | pred_access_denied | 35 |
-| mean_detector_conf | 0.761242 |
-| mean_ocr_conf | 0.587639 |
+| mean_detector_conf | 0.761268 |
+| mean_ocr_conf | 0.588681 |
 
 ## decision metrics (labeled)
 
@@ -49,5 +49,5 @@ epochs recorded: 80
 
 ## artifact paths
 
-- inference json: outputs/predictions/inference_results.json
-- ground truth csv: outputs/metrics/ground_truth_template.csv
+- inference json: outputs\predictions\inference_results.json
+- ground truth csv: outputs\metrics\ground_truth_template.csv

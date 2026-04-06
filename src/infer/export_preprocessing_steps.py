@@ -108,12 +108,13 @@ def main() -> None:
     variant_names = [
         "04_upscaled",
         "05_rectified_or_upscaled",
-        "06_denoise",
-        "07_clahe",
-        "08_otsu_threshold",
-        "09_adaptive_threshold",
-        "10_sharpen",
-        "11_rectified_gray",
+        "06_flattened",
+        "07_denoise",
+        "08_clahe",
+        "09_otsu_threshold",
+        "10_adaptive_threshold",
+        "11_sharpen",
+        "12_rectified_gray",
     ]
 
     for name, variant in zip(variant_names, variants):
