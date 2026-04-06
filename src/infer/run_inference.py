@@ -54,6 +54,7 @@ def main() -> None:
         ocr_backends=list(ocr_cfg.get("backends", ["easyocr", "paddleocr"])),
         ocr_use_rectification=bool(ocr_cfg.get("use_rectification", True)),
         device=args.device or (str(infer_cfg["device"]) if "device" in infer_cfg else None),
+        crnn_weights=str(ocr_cfg["crnn_weights"]) if ocr_cfg.get("crnn_weights") else None,
     )
 
     image_paths = collect_images(args.image, args.image_dir)

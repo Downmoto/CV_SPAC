@@ -26,11 +26,15 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--prepare", action="store_true", help="prepare kaggle dataset")
     parser.add_argument("--seed-db", action="store_true", help="create sample resident db")
     parser.add_argument("--train", action="store_true", help="train detector")
+    parser.add_argument("--extract-crops", action="store_true", help="extract plate crops for ocr training")
+    parser.add_argument("--train-ocr", action="store_true", help="train crnn plate ocr model")
     parser.add_argument("--infer", action="store_true", help="run end-to-end inference")
     parser.add_argument("--eval", action="store_true", help="run evaluation summary")
     parser.add_argument("--report", action="store_true", help="generate markdown report tables")
     parser.add_argument("--all", action="store_true", help="run download -> prepare -> train -> infer -> eval -> report")
     parser.add_argument("--force-download", action="store_true", help="force kaggle download even if zip exists")
+    parser.add_argument("--ocr-epochs", type=int, default=None, help="override crnn training epochs")
+    parser.add_argument("--ocr-repeat-factor", type=int, default=None, help="override crnn dataset repeat factor")
 
     parser.add_argument("--image", default=None, help="override single inference image")
     parser.add_argument("--image-dir", default=None, help="override inference image directory")
@@ -168,6 +172,34 @@ def run_train(cfg: dict[str, Any]) -> None:
 
 
 
+def run_extract_crops(cfg: dict[str, Any]) -> None:
+    paths = cfg.get("paths", {})
+    ds = cfg.get("dataset", {})
+    gt_csv = str(paths.get("ground_truth_csv", "outputs/metrics/ground_truth_template.csv"))
+    out_dir = str(ds.get("out_dir", "data/processed/car_plate_kaggle"))
+
+    args = ["--config", "configs/default.yaml", "--output-dir", "data/plate_crops"]
+    if Path(gt_csv).exists():
+        args.extend(["--ground-truth-csv", gt_csv])
+    run_module("src.data.extract_plate_crops", args)
+
+
+def run_train_ocr(cfg: dict[str, Any], epochs_override: int | None = None, repeat_factor_override: int | None = None) -> None:
+    ocr_cfg = cfg.get("ocr", {})
+    crnn_weights = str(ocr_cfg.get("crnn_weights", "models/plate_crnn.pt"))
+
+    args = [
+        "--crops-dir", "data/plate_crops/images",
+        "--labels-csv", "data/plate_crops/labels.csv",
+        "--output-weights", crnn_weights,
+    ]
+    if epochs_override is not None:
+        args.extend(["--epochs", str(epochs_override)])
+    if repeat_factor_override is not None:
+        args.extend(["--repeat-factor", str(repeat_factor_override)])
+    run_module("src.train.train_plate_ocr", args)
+
+
 def run_infer(cfg_path: str, image: str | None, image_dir: str | None) -> None:
     args = ["--config", cfg_path]
     if image:
@@ -261,6 +293,10 @@ def main() -> None:
         run_prepare(cfg)
     if args.train:
         run_train(cfg)
+    if args.extract_crops:
+        run_extract_crops(cfg)
+    if args.train_ocr:
+        run_train_ocr(cfg, args.ocr_epochs, args.ocr_repeat_factor)
     if args.infer:
         run_infer(args.config, args.image, args.image_dir)
     if args.eval:
@@ -268,8 +304,8 @@ def main() -> None:
     if args.report:
         run_report(cfg)
 
-    if not any([args.download, args.seed_db, args.prepare, args.train, args.infer, args.eval, args.report, args.all]):
-        raise ValueError("no action provided. use --download/--prepare/--train/--infer/--eval/--report/--all")
+    if not any([args.download, args.seed_db, args.prepare, args.train, args.extract_crops, args.train_ocr, args.infer, args.eval, args.report, args.all]):
+        raise ValueError("no action provided. use --download/--prepare/--train/--extract-crops/--train-ocr/--infer/--eval/--report/--all")
 
 
 if __name__ == "__main__":

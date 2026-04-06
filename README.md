@@ -36,6 +36,8 @@ each action maps to an existing module:
 - `--seed-db` -> `src.data.create_sample_db`
 - `--prepare` -> `src.data.prepare_kaggle_car_plate_dataset`
 - `--train` -> `src.train.train_detector`
+- `--extract-crops` -> `src.data.extract_plate_crops`
+- `--train-ocr` -> `src.train.train_plate_ocr`
 - `--infer` -> `src.infer.run_inference`
 - `--eval` -> `src.eval.evaluate_pipeline`
 - `--report` -> `src.eval.generate_report_tables`
@@ -61,6 +63,15 @@ python -m src.main --train
 
 # run inference on default test split from config
 python -m src.main --infer
+
+# extract plate crops for crnn training
+python -m src.main --extract-crops
+
+# train crnn plate ocr model
+python -m src.main --train-ocr
+
+# train crnn with custom epochs and repeat factor
+python -m src.main --train-ocr --ocr-epochs 80 --ocr-repeat-factor 5
 
 # run base evaluation
 python -m src.main --eval
@@ -90,6 +101,12 @@ evaluate with ground truth + report:
 
 ```bash
 python -m src.main --eval --use-ground-truth --report
+```
+
+extract crops + train crnn + re-infer + evaluate:
+
+```bash
+python -m src.main --extract-crops --train-ocr --infer --eval --use-ground-truth --report
 ```
 
 generate ground-truth template from latest inference output:
@@ -148,6 +165,11 @@ python -m src.main --config configs/default.yaml --infer
 - `--train`:
   - `runs/detect/outputs/detector_train/weights/best.pt`
   - `runs/detect/outputs/detector_train/results.csv`
+- `--extract-crops`:
+  - `data/plate_crops/images/` (cropped plate images)
+  - `data/plate_crops/labels.csv` (filename, label, split)
+- `--train-ocr`:
+  - `models/plate_crnn.pt` (best crnn weights)
 - `--infer`:
   - `outputs/predictions/inference_results.json`
   - visual outputs in `outputs/demo`
@@ -341,7 +363,40 @@ python -m src.eval.generate_report_tables \
   --output-md docs/evaluation_tables.md
 ```
 
-## 6) Suggested implementation order
+## 6) Train CRNN plate OCR model (optional)
+
+the crnn is a lightweight cnn+bilstm+ctc model trained on plate crops extracted from the dataset.
+it runs as a third ocr backend alongside easyocr and paddleocr.
+
+extract labeled plate crops (uses ground-truth labels for test, ocr pseudo-labels for train/val):
+
+```bash
+python -m src.data.extract_plate_crops \
+  --config configs/default.yaml \
+  --output-dir data/plate_crops
+```
+
+train the crnn model:
+
+```bash
+python -m src.train.train_plate_ocr \
+  --crops-dir data/plate_crops/images \
+  --labels-csv data/plate_crops/labels.csv \
+  --output-weights models/plate_crnn.pt \
+  --epochs 150 \
+  --batch-size 16 \
+  --repeat-factor 10
+```
+
+for faster cpu training, reduce epochs and repeat factor:
+
+```bash
+python -m src.train.train_plate_ocr --epochs 80 --repeat-factor 5
+```
+
+once trained, the crnn backend is automatically used during inference if `crnn` is listed in `configs/default.yaml` under `ocr.backends` and `models/plate_crnn.pt` exists.
+
+## 7) Suggested implementation order
 
 1. verify resident db flow with sample csv
 2. download and convert andrewmvd kaggle dataset

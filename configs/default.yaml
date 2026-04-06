@@ -48,8 +48,9 @@ inference:
 
 ocr:
   language_list: ["en"]
-  backends: ["easyocr", "paddleocr"]
+  backends: ["easyocr", "paddleocr", "crnn"]
   use_rectification: true
+  crnn_weights: "models/plate_crnn.pt"
 
 evaluation:
   decision_positive_label: Access Granted
