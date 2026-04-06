@@ -22,12 +22,12 @@ python -m src.infer.run_inference --image-dir path/to/images
 
 ## pipeline
 
-library module — not invoked directly. contains:
+library module, not invoked directly. contains:
 
-- `PlateDetector` — lazy-loaded YOLO wrapper
-- `SPACPipeline` — orchestrates detector + OCR + matcher
-- `crop_bbox()` — padded plate crop from detection bbox
-- `draw_result()` — annotated image with bbox + label overlay
+- `PlateDetector` - lazy-loaded YOLO wrapper
+- `SPACPipeline` - orchestrates detector + OCR + matcher
+- `crop_bbox()` - padded plate crop from detection bbox
+- `draw_result()` - annotated image with bbox + label overlay
 
 ## export_preprocessing_steps
 

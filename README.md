@@ -1,6 +1,6 @@
 # Smart Parking Access Control (SPAC)
 
-license plate detection, OCR extraction, resident matching, and access decisions — all from a single CLI.
+license plate detection, OCR extraction, resident matching, and access decisions, all from a single CLI.
 
 ## setup
 
@@ -39,7 +39,7 @@ python -m src.main --all                            # full pipeline end to end
 | `--infer` | run end-to-end inference | `src.infer.run_inference` |
 | `--eval` | evaluate predictions | `src.eval.evaluate_pipeline` |
 | `--report` | generate markdown tables | `src.eval.generate_report_tables` |
-| `--all` | run all stages in order | — |
+| `--all` | run all stages in order | - |
 
 ## input overrides
 
@@ -85,7 +85,7 @@ all default paths and thresholds live in `configs/default.yaml`. prefer editing 
 
 ## git and raw images
 
-`data/raw/*` and `data/processed/*` are gitignored — download datasets locally.
+`data/raw/*` and `data/processed/*` are gitignored, please download datasets locally.
 
 ## Notes
 

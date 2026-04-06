@@ -4,7 +4,7 @@ resident plate matching against a CSV database.
 
 ## ResidentMatcher
 
-library module — no CLI. used by the inference pipeline.
+library module, no CLI. used by the inference pipeline.
 
 ```python
 from src.matching.matcher import ResidentMatcher
@@ -28,7 +28,7 @@ print(result.record)          # full db row dict if matched
 1. normalizes input text (uppercase, strip non-alphanumeric)
 2. exact match against `normalized_plate` column
 3. if no exact match and fuzzy matching is enabled, finds the best rapidfuzz ratio above threshold
-4. checks the `status` column — `active` grants access, `inactive` denies it
+4. checks the `status` column, `active` grants access, `inactive` denies it
 
 ### resident db format
 

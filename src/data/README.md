@@ -22,7 +22,7 @@ python -m src.data.prepare_kaggle_car_plate_dataset \
 | `--val-ratio` | 0.1 |
 | `--test-ratio` | 0.1 |
 | `--plate-class-name` | `plate` |
-| `--clear-out-dir` | flag — wipe output dir first |
+| `--clear-out-dir` | flag, wipe output dir first |
 
 **input:** `data/raw/car-plate-detection/{images,annotations}`
 **output:** `data/processed/car_plate_kaggle/{images,labels}/{train,val,test}` + `dataset.yaml`
@@ -40,7 +40,7 @@ python -m src.data.create_sample_db
 | `--ground-truth-csv` | `outputs/metrics/ground_truth_template.csv` |
 | `--output-csv` | `data/db/residents.csv` |
 | `--inference-json` | `outputs/predictions/inference_results.json` |
-| `--fallback-to-ocr` | flag — use OCR text when expected_plate is blank |
+| `--fallback-to-ocr` | flag, use OCR text when expected_plate is blank |
 | `--seed` | 42 |
 | `--active-ratio` | 0.85 |
 

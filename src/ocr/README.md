@@ -4,7 +4,7 @@ multi-backend OCR engine for license plate text extraction.
 
 ## OCREngine
 
-library module — no CLI. used by the inference pipeline.
+library module, no CLI. used by the inference pipeline.
 
 ```python
 from src.ocr.ocr_engine import OCREngine
@@ -48,6 +48,6 @@ available steps: `upscale`, `rectify`, `flatten`, `grayscale`, `denoise`, `clahe
 
 controlled via `configs/default.yaml` under the `ocr` section:
 
-- `language_list` — OCR languages
-- `backends` — list of backends to use
-- `use_rectification` — enable geometric rectification
+- `language_list` - OCR languages
+- `backends` - list of backends to use
+- `use_rectification` - enable geometric rectification
