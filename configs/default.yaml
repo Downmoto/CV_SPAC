@@ -44,6 +44,7 @@ inference:
   ocr_conf_threshold: 0.35
   fuzzy_match_threshold: 90
   use_fuzzy_matching: true
+  device: 0
 
 ocr:
   language_list: ["en"]

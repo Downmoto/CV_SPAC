@@ -13,11 +13,13 @@ class OCREngine:
         min_conf: float = 0.35,
         backends: list[str] | None = None,
         use_rectification: bool = True,
+        gpu: bool = True,
     ) -> None:
         self.languages = languages or ["en"]
         self.min_conf = min_conf
         self.backends = [b.lower() for b in (backends or ["easyocr", "paddleocr"])]
         self.use_rectification = use_rectification
+        self.gpu = gpu
         self._easy_reader = None
         self._paddle_reader = None
 
@@ -56,7 +58,7 @@ class OCREngine:
         if self._easy_reader is None:
             import easyocr
 
-            self._easy_reader = easyocr.Reader(self.languages, gpu=False)
+            self._easy_reader = easyocr.Reader(self.languages, gpu=self.gpu)
         return self._easy_reader
 
     def _ensure_paddle_reader(self) -> Any:
@@ -67,6 +69,7 @@ class OCREngine:
                 use_angle_cls=True,
                 lang="en",
                 show_log=False,
+                use_gpu=self.gpu,
             )
         return self._paddle_reader
 

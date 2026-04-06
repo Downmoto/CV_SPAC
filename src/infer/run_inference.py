@@ -18,6 +18,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--config", default="configs/default.yaml", help="path to yaml config")
     parser.add_argument("--image", help="single image path")
     parser.add_argument("--image-dir", help="directory with images")
+    parser.add_argument("--device", default=None, help="inference device (e.g., 0 for GPU, cpu for CPU)")
     return parser.parse_args()
 
 
@@ -52,6 +53,7 @@ def main() -> None:
         ocr_languages=list(ocr_cfg.get("language_list", ["en"])),
         ocr_backends=list(ocr_cfg.get("backends", ["easyocr", "paddleocr"])),
         ocr_use_rectification=bool(ocr_cfg.get("use_rectification", True)),
+        device=args.device or (str(infer_cfg["device"]) if "device" in infer_cfg else None),
     )
 
     image_paths = collect_images(args.image, args.image_dir)

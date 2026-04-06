@@ -15,9 +15,10 @@ class DetectionResult:
 
 
 class PlateDetector:
-    def __init__(self, weights_path: str, conf_threshold: float = 0.25) -> None:
+    def __init__(self, weights_path: str, conf_threshold: float = 0.25, device: str | None = None) -> None:
         self.weights_path = weights_path
         self.conf_threshold = conf_threshold
+        self.device = device
         self._model = None
 
     def _ensure_model(self):
@@ -34,7 +35,7 @@ class PlateDetector:
 
     def detect(self, image_bgr) -> DetectionResult:
         model = self._ensure_model()
-        preds = model.predict(source=image_bgr, conf=self.conf_threshold, verbose=False)
+        preds = model.predict(source=image_bgr, conf=self.conf_threshold, device=self.device, verbose=False)
         if not preds:
             return DetectionResult(None, 0.0)
 
@@ -90,13 +91,15 @@ class SPACPipeline:
         ocr_languages: list[str] | None = None,
         ocr_backends: list[str] | None = None,
         ocr_use_rectification: bool = True,
+        device: str | None = None,
     ) -> None:
-        self.detector = PlateDetector(weights_path, detector_conf_threshold)
+        self.detector = PlateDetector(weights_path, detector_conf_threshold, device=device)
         self.ocr = OCREngine(
             ocr_languages or ["en"],
             ocr_conf_threshold,
             backends=ocr_backends or ["easyocr", "paddleocr"],
             use_rectification=ocr_use_rectification,
+            gpu=device is not None and str(device) != "cpu",
         )
         self.matcher = ResidentMatcher(
             resident_db_csv,
