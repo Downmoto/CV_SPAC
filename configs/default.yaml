@@ -1,0 +1,49 @@
+project_name: spac
+
+source:
+  kaggle_dataset: andrewmvd/car-plate-detection
+
+paths:
+  resident_db_csv: data/db/residents.csv
+  output_json: outputs/predictions/inference_results.json
+  output_visual_dir: outputs/demo
+  yolo_weights: models/plate_detector.pt
+  evaluation_summary_json: outputs/metrics/evaluation_summary.json
+  evaluation_rows_csv: outputs/metrics/evaluation_rows.csv
+  ground_truth_csv: outputs/metrics/ground_truth_template.csv
+  detector_results_csv: runs/detect/outputs/detector_train/results.csv
+  report_tables_md: docs/evaluation_tables.md
+
+dataset:
+  download_dir: data/raw/car-plate-detection
+  raw_dir: data/raw/car-plate-detection
+  out_dir: data/processed/car_plate_kaggle
+  seed: 42
+  train_ratio: 0.8
+  val_ratio: 0.1
+  test_ratio: 0.1
+  plate_class_name: plate
+  clear_out_dir: false
+
+training:
+  data_yaml: data/processed/car_plate_kaggle/dataset.yaml
+  model: yolov8n.pt
+  epochs: 80
+  imgsz: 640
+  batch: 16
+  project: outputs
+  name: detector_train
+
+inference:
+  detector_conf_threshold: 0.25
+  ocr_conf_threshold: 0.35
+  fuzzy_match_threshold: 90
+  use_fuzzy_matching: true
+
+ocr:
+  language_list: ["en"]
+  backends: ["easyocr", "paddleocr"]
+  use_rectification: true
+
+evaluation:
+  decision_positive_label: Access Granted

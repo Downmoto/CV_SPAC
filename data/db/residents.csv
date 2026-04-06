@@ -1,0 +1,4 @@
+plate_number,resident_name,unit,vehicle_color,status
+ABC123,John Doe,A-101,white,active
+XYZ789,Sara Lee,B-204,black,active
+TEST000,Old Tenant,C-010,blue,inactive
