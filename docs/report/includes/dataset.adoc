@@ -12,6 +12,41 @@ The repository currently contains 433 raw images and 433 XML annotation files, s
 Each annotation file describes the target object through a rectangular bounding box defined by `xmin`, `ymin`, `xmax`, and `ymax` coordinates in image pixel space.
 For this project, those annotations are treated as a single detection class, `plate`, because the training objective is limited to license plate localization rather than multi-class object recognition.
 
+=== Sample Images and Ground-Truth Labels
+
+Figure samples from the raw dataset are shown below with their detector ground-truth bounding boxes overlaid.
+These examples illustrate the variety of scale, background clutter, and viewpoint changes present even within this relatively compact dataset.
+
+.Dataset sample with detector ground truth: Cars17
+image::dataset_samples/Cars17_annotated.png[Cars17 annotated sample, align="center", pdfwidth=4.8in]
+
+.Dataset sample with detector ground truth: Cars50
+image::dataset_samples/Cars50_annotated.png[Cars50 annotated sample, align="center", pdfwidth=4.8in]
+
+.Dataset sample with detector ground truth: Cars111
+image::dataset_samples/Cars111_annotated.png[Cars111 annotated sample, align="center", pdfwidth=4.8in]
+
+The bounding-box labels are provided in Pascal VOC XML files.
+For example, the `Cars50.xml` annotation encodes a single license plate object with the following coordinates:
+
+[source,xml]
+----
+<annotation>
+	<filename>Cars50.png</filename>
+	<object>
+		<name>licence</name>
+		<bndbox>
+			<xmin>116</xmin>
+			<ymin>55</ymin>
+			<xmax>525</xmax>
+			<ymax>262</ymax>
+		</bndbox>
+	</object>
+</annotation>
+----
+
+This detector ground truth is part of the source dataset itself and is therefore distinct from the manually completed decision-level ground-truth CSV used later during end-to-end evaluation.
+
 === Dataset Conversion
 
 Because Ultralytics YOLO expects labels in normalized YOLO format rather than Pascal VOC XML, the raw Kaggle dataset is converted before training.
@@ -26,6 +61,17 @@ The preparation script parses each XML annotation, extracts the image filename a
 
 All four values are normalized by the image width and height, and the generated labels are written to text files under the standard YOLO directory structure.
 The output dataset is stored in `data/processed/car_plate_kaggle/` with paired `images/` and `labels/` directories for each split.
+
+=== Preparation and Preprocessing for Training
+
+At the project level, detector preparation is intentionally conservative.
+The main preprocessing steps are annotation validation, coordinate clamping, conversion from Pascal VOC to YOLO format, and deterministic train-validation-test splitting.
+No custom grayscale conversion, histogram equalization, or handcrafted image enhancement is applied to the detector training images themselves.
+
+Instead, image resizing and tensor normalization are handled by the Ultralytics training pipeline at an input size of `640 x 640`.
+Likewise, the project does not define a custom augmentation policy in `src.train.train_detector`.
+This means the experiment does not introduce any project-specific augmentation design; any augmentation applied during training comes from the standard Ultralytics training behavior rather than from manually tuned transforms defined by the group.
+This keeps the detector experiment simple and reproducible while reserving the heavier image-processing logic for the OCR stage, where it has the greatest impact.
 
 === Train-Validation-Test Split
 

@@ -1,0 +1,9 @@
+== Previous Work
+
+Automatic license plate recognition is commonly structured as a two-stage pipeline in which a detector first localizes the plate region and a recognition engine then extracts the alphanumeric text.
+This project follows that general pattern rather than proposing a new detector or OCR architecture from scratch.
+In particular, the implementation builds directly on Ultralytics YOLO for object detection [1], EasyOCR for scene-text recognition [2], and PaddleOCR as a complementary OCR backend [3], while using the Kaggle Car License Plate Detection dataset as the supervised benchmark for plate localization [4].
+
+The main departure from these prior building blocks is therefore at the system-integration level.
+Instead of relying on a single OCR pass, the SPAC pipeline adds plate-specific preprocessing variants, dual-backend candidate collection, normalization, plausibility-aware ranking, and fuzzy resident matching so that imperfect OCR output can still be converted into an access decision.
+Accordingly, the project should be understood as an applied ALPR system built on established open-source components, with its primary contribution lying in the design, orchestration, and evaluation of a complete access-control workflow rather than in the introduction of a new foundational model.

@@ -1,0 +1,19 @@
+== Declaration and Group Contributions
+
+We, Arad Fadaei and Sia Tedy, declare that the attached project is entirely our own work and has been completed in accordance with the Seneca Academic Policy.
+We have not copied or reproduced any part of this assignment, either manually or electronically, from any unauthorized source, including but not limited to AI tools, homework-sharing websites, or other students' work, unless explicitly cited as references.
+We have not shared our work with others, nor have we received unauthorized assistance in completing this project.
+
+The contribution summary below should reflect the final agreed division of work before submission.
+
+.Group Contribution Summary
+[cols="1,3", options="header"]
+|===
+| Name | Task(s)
+
+| Arad Fadaei
+| Co-developed the initial project baseline with the group and took primary responsibility for repository structure, workflow CLI integration, dataset preparation, detector training, evaluation scripts, and final report integration.
+
+| Sia Tedy
+| Co-developed the initial project baseline with the group and took primary responsibility for OCR experimentation support, manual ground-truth labeling, qualitative result review, database and decision validation, and supporting report and presentation materials.
+|===

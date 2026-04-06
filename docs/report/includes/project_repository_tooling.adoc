@@ -1,4 +1,5 @@
 == Project Repository and Tooling
+Found here: https://github.com/Downmoto/CV_SPAC
 
 The SPAC project is organized as a modular Python repository in which each major pipeline stage is implemented as a separate package.
 This structure keeps data preparation, model training, inference, OCR, matching, and evaluation concerns isolated from one another while still allowing them to be orchestrated through a single command-line entrypoint.
@@ -148,3 +149,47 @@ Examples include the preprocessing export script for OCR inspection, the ground-
 
 Taken together, these tools make the repository more than a single inference script.
 They provide a lightweight but complete experimentation environment in which data preparation, detector training, OCR debugging, evaluation, and report production can all be managed from the same codebase.
+
+=== Code Submission and Reproduction
+
+The project code is submitted through the public repository link shown at the start of this section.
+To run the project, a Python environment should first be created and the dependencies in `requirements.txt` installed.
+If the Kaggle dataset needs to be downloaded through the workflow runner, the Kaggle CLI and local Kaggle API credentials must also be configured in the environment.
+
+.Setup and Run Instructions
+[source,bash]
+----
+python -m pip install -r requirements.txt
+python -m pip install kaggle
+python -m src.main --help
+----
+
+After setup, the main workflow stages can be executed from the repository root with the same CLI used throughout the project.
+For the full decision-level evaluation workflow, two additional points are important.
+First, the ground-truth CSV is not supplied by the source dataset and must be generated from inference output and then completed manually.
+Second, the resident database is created twice in practice: once as an initial sample database to support the first end-to-end inference pass, and once again after manual ground-truth labeling so that the final database is based on the cleaned `expected_plate` values rather than on provisional inputs.
+In the submitted repository, `data/db/residents.csv` already contains the first-pass sample database used for the initial pipeline run, so the reproduction steps below begin from inference and then show how the final labeled workflow is produced.
+
+.Example Commands
+[source,bash]
+----
+python -m src.main --prepare
+python -m src.main --train
+python -m src.main --infer
+python -m src.eval.create_ground_truth_template --inference-json outputs/predictions/inference_results.json --output-csv outputs/metrics/ground_truth_template.csv
+python -m src.data.create_sample_db --ground-truth-csv outputs/metrics/ground_truth_template.csv --output-csv data/db/residents.csv
+python -m src.main --infer --eval --report --use-ground-truth
+python -m src.main --all #runs entire process from start to finish (not ground truth generation or second DB pass)
+----
+
+In the evaluation workflow, the ground-truth file created by `src.eval.create_ground_truth_template` starts as a blank template with the columns `image_path`, `expected_decision`, `expected_plate`, and `notes`.
+That file must then be labeled manually by reviewing each test image and filling in the expected access decision and the normalized expected plate string.
+Only after this manual step can the final labeled evaluation be run.
+
+The resident database workflow is intentionally two-stage.
+Before final labeling, an initial sample database can be generated for the first decision pass by using a provisional seed CSV together with `--fallback-to-ocr`, which allows OCR output from inference to populate temporary resident records.
+After the ground-truth CSV has been completed manually, the database should be generated again without OCR fallback so that the resident records reflect the labeled `expected_plate` values used for the final evaluation.
+
+The default paths, thresholds, and stage settings are read from `configs/default.yaml`.
+This keeps the run procedure reproducible and allows the full pipeline or individual stages to be rerun without modifying source code.
+Important generated outputs include detector training artifacts under `runs/detect/outputs/`, inference predictions under `outputs/predictions/`, evaluation summaries under `outputs/metrics/`, and report-ready tables under `docs/evaluation_tables.md`.

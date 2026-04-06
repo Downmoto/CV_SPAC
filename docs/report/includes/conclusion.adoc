@@ -1,5 +1,12 @@
 == Conclusion
 
+=== Outcome and Reflection
+
+Overall, the method achieved the expected outcome at the system level but not yet at the exact-recognition level.
+The pipeline successfully delivers a working access-control workflow with strong plate detection performance and high decision accuracy on the held-out test split, which shows that the chosen architecture is effective for the project goal.
+At the same time, the low exact plate match rate confirms that OCR remains the main limitation of the current design.
+This reflection is important because it shows that the project did not fail as an end-to-end prototype; rather, it succeeded in identifying which component now deserves the most improvement, namely OCR robustness under difficult viewing conditions.
+
 This project showed that an end-to-end smart parking access-control pipeline can be built as a coherent and practical computer vision system using a lightweight detector, a multi-variant OCR stage, and a database-driven matching module.
 Across the report, the system demonstrated strong plate localization performance, reliable generation of non-empty OCR outputs, and a decision pipeline that achieved useful access-control accuracy on the held-out test split.
 These results indicate that the overall architecture is sound and that the modular design choices made throughout the project were effective for both experimentation and evaluation.

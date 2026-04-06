@@ -130,6 +130,62 @@ Among those 39 evaluable samples, the exact plate match rate was 28.21%.
 This comparatively low exact-match rate highlights the main weakness of the current system: OCR errors remain common even when plate detection succeeds.
 That result is consistent with the project’s broader design, where fuzzy matching and decision logic are necessary because exact OCR recovery is not yet robust enough to support strict string comparison alone.
 
+=== Ground-Truth Construction
+
+End-to-end evaluation uses a second layer of ground truth beyond the detector annotations.
+After inference, the project generates a CSV template containing one row per test image, and that file is then completed manually with the expected access decision and expected normalized plate string.
+This makes it possible to evaluate not only whether a plate was localized, but also whether the final access-control outcome was correct.
+
+A representative excerpt of the manually completed file is shown below.
+
+[source,csv]
+----
+image_path,expected_decision,expected_plate,notes
+data/processed/car_plate_kaggle/images/test/Cars111.png,Access Granted,MH20EE7598,
+data/processed/car_plate_kaggle/images/test/Cars112.png,Access Granted,SHAKNBK,
+data/processed/car_plate_kaggle/images/test/Cars138.png,Access Denied,TN02BL9,
+data/processed/car_plate_kaggle/images/test/Cars50.png,Access Denied,PUI8BES,
+----
+
+This manual labeling step is necessary because the source Kaggle dataset provides detector boxes but does not provide the resident authorization labels required by the SPAC decision task.
+
+=== Qualitative Examples
+
+Quantitative metrics summarize overall behavior, but individual outputs are also useful for understanding where the pipeline succeeds and where it fails.
+The examples below show four representative cases taken from the held-out test split.
+
+.Qualitative example: correct grant with successful OCR and matching (Cars17)
+image::evaluation_examples/Cars17_result.jpg[Cars17 qualitative result, align="center", pdfwidth=4.8in]
+
+In `Cars17`, the detector localizes the plate successfully, OCR recovers `YSX213`, and the matcher returns the correct authorized resident record.
+This is a representative end-to-end success case.
+
+.Qualitative example: correct deny with successful OCR but no authorized match (Cars50)
+image::evaluation_examples/Cars50_result.jpg[Cars50 qualitative result, align="center", pdfwidth=4.8in]
+
+In `Cars50`, OCR correctly recovers `PUI8BES`, but the plate is not found in the authorized resident database, so the system correctly denies access.
+This case shows that accurate OCR does not necessarily imply an access grant.
+
+.Qualitative example: denied case caused by missed detection (Cars138)
+image::evaluation_examples/Cars138_result.jpg[Cars138 qualitative result, align="center", pdfwidth=4.8in]
+
+In `Cars138`, the detector fails to produce a bounding box, so no OCR text is generated and the pipeline defaults to denial.
+This is the clearest example of an upstream detector failure propagating directly to the final decision.
+
+.Qualitative example: incorrect grant despite correct OCR (Cars293)
+image::evaluation_examples/Cars293_result.jpg[Cars293 qualitative result, align="center", pdfwidth=4.8in]
+
+In `Cars293`, OCR recovers the expected plate string `GBI8TCE`, but the system still predicts `Access Granted` while the manual label is `Access Denied`.
+This illustrates that the access-control task depends not only on recognition quality but also on the correctness of the downstream matching and labeling assumptions.
+
+=== Comparison with Previous Work
+
+Direct numerical comparison with prior ALPR work is limited in this report because published systems often evaluate on different datasets, use different plate formats, or stop at text recognition without modeling an access-control decision.
+Even so, the overall structure of the SPAC pipeline is consistent with the broader ALPR literature summarized in the previous-work section: a detector proposes the plate region, OCR extracts text, and downstream logic resolves the operational decision.
+
+Relative to those established building blocks, the present system performs strongly at plate localization on the current benchmark and achieves useful decision-level accuracy, but it does not yet deliver equally strong exact plate recovery.
+That comparison is important because it clarifies the project’s contribution: the report does not claim a new state-of-the-art ALPR model, but rather demonstrates a complete and inspectable smart parking workflow built on modern open-source components and evaluated end to end.
+
 === Evaluation Artifacts
 
 The evaluation stage writes two primary artifacts.

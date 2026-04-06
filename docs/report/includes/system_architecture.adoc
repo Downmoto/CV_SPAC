@@ -2,6 +2,16 @@
 .System Architecture Diagram
 image::architecture_diagram.png[System Architecture, align="center"]
 
+=== Method and Contributions
+
+The method used in this project is a modular end-to-end ALPR pipeline tailored to the parking access-control task rather than to plate recognition alone.
+Starting from an input vehicle image, the system first detects the plate region with YOLOv8n, expands the crop to preserve edge characters, applies multiple OCR-oriented preprocessing variants, extracts candidate text with both EasyOCR and PaddleOCR, and finally converts the recognized plate string into an access decision through exact and fuzzy comparison against a resident database.
+This design was chosen because the project goal is operational authorization, so the pipeline must remain useful even when OCR is imperfect.
+
+The main contributions of the project are therefore at the system-design level.
+Relative to the baseline detector-plus-single-OCR pattern described in the previous-work section, the group added configurable crop padding, multiple geometric and contrast preprocessing variants, dual-backend OCR candidate collection, normalization and plausibility-aware ranking of candidate strings, resident-database matching, and end-to-end evaluation artifacts that expose where failures occur.
+These steps were chosen to make the full workflow more robust and more inspectable than a minimal ALPR prototype, while keeping each stage modular enough to debug and improve independently.
+
 === Pipeline Stages
 
 [arabic]
