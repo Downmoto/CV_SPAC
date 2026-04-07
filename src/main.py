@@ -145,6 +145,7 @@ def run_seed_db(cfg: dict[str, Any], ground_truth_csv_override: str | None = Non
 
 def run_train(cfg: dict[str, Any]) -> None:
     tr = cfg.get("training", {})
+    paths = cfg.get("paths", {})
     args = [
         "--data-yaml",
         str(tr.get("data_yaml", "data/processed/car_plate_kaggle/dataset.yaml")),
@@ -160,6 +161,8 @@ def run_train(cfg: dict[str, Any]) -> None:
         str(tr.get("project", "outputs")),
         "--name",
         str(tr.get("name", "detector_train")),
+        "--export-weights",
+        str(paths.get("yolo_weights", "models/plate_detector.pt")),
     ]
     device = tr.get("device")
     if device is not None:
