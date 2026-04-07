@@ -4,6 +4,4 @@
 
 [2] JaidedAI, *EasyOCR*. GitHub repository, 2020. Available: https://github.com/JaidedAI/EasyOCR. Accessed: Apr. 6, 2026.
 
-[3] C. Cui, T. Sun, M. Lin, T. Gao, Y. Zhang, J. Liu, X. Wang, Z. Zhang, C. Zhou, H. Liu, Y. Zhang, W. Lv, K. Huang, Y. Zhang, J. Zhang, J. Zhang, Y. Liu, D. Yu, and Y. Ma, "PaddleOCR 3.0 Technical Report," arXiv:2507.05595, 2025.
-
 [4] Andrew MVD, *Car License Plate Detection*. Kaggle dataset, updated approximately 2020. Available: https://www.kaggle.com/datasets/andrewmvd/car-plate-detection. Accessed: Apr. 6, 2026.
