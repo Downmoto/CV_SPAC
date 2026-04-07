@@ -5,6 +5,16 @@ from pathlib import Path
 from ultralytics import YOLO
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+
+def resolve_repo_path(path_str: str) -> Path:
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return REPO_ROOT / path
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="train yolo detector for license plate")
     parser.add_argument("--data-yaml", required=True, help="dataset yaml path")
@@ -29,14 +39,19 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    model = YOLO(args.model)
+    data_yaml = resolve_repo_path(args.data_yaml)
+    model_path = resolve_repo_path(args.model)
+    project_dir = resolve_repo_path(args.project)
+    export_path = resolve_repo_path(args.export_weights)
+
+    model = YOLO(str(model_path))
     results = model.train(
-        data=args.data_yaml,
+        data=str(data_yaml),
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
         device=args.device,
-        project=args.project,
+        project=str(project_dir),
         name=args.name,
     )
 
@@ -56,7 +71,6 @@ def main() -> None:
     if not best_weights.exists():
         raise FileNotFoundError(f"best checkpoint not found: {best_weights}")
 
-    export_path = Path(args.export_weights)
     if export_path.suffix == "":
         export_path = export_path.with_suffix(".pt")
     export_path.parent.mkdir(parents=True, exist_ok=True)

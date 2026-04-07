@@ -7,32 +7,42 @@ from typing import Any
 import yaml
 
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
+
+def resolve_repo_path(path_str: str) -> Path:
+    path = Path(path_str)
+    if path.is_absolute():
+        return path
+    return REPO_ROOT / path
+
+
 def load_config(path: str) -> dict[str, Any]:
-    with open(path, "r", encoding="utf-8") as f:
+    with open(resolve_repo_path(path), "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
 
 
 def run_module(module: str, args: list[str]) -> None:
     cmd = [sys.executable, "-u", "-m", module, *args]
     print("running:", " ".join(cmd))
-    subprocess.run(cmd, check=True)
+    subprocess.run(cmd, check=True, cwd=REPO_ROOT)
 
 
 def resolve_detector_results_csv(cfg: dict[str, Any]) -> str:
     paths = cfg.get("paths", {})
     tr = cfg.get("training", {})
 
-    configured_path = Path(
+    configured_path = resolve_repo_path(
         str(paths.get("detector_results_csv", "runs/detect/outputs/detector_train/results.csv"))
     )
-    training_project = Path(str(tr.get("project", "runs/detect/outputs")))
+    training_project = resolve_repo_path(str(tr.get("project", "runs/detect/outputs")))
     training_name = str(tr.get("name", "detector_train"))
 
     candidates = [
         configured_path,
         training_project / training_name / "results.csv",
-        Path("runs/detect/outputs") / training_name / "results.csv",
-        Path("outputs") / training_name / "results.csv",
+        REPO_ROOT / "runs" / "detect" / "outputs" / training_name / "results.csv",
+        REPO_ROOT / "outputs" / training_name / "results.csv",
     ]
 
     for candidate in candidates:
@@ -125,11 +135,13 @@ def run_seed_db(cfg: dict[str, Any], ground_truth_csv_override: str | None = Non
     ds = cfg.get("dataset", {})
     db_seed = cfg.get("db_seed", {})
 
-    gt_csv = Path(
+    gt_csv = resolve_repo_path(
         ground_truth_csv_override
         or str(paths.get("ground_truth_csv", "outputs/metrics/ground_truth_template.csv"))
     )
-    inference_json = Path(str(paths.get("output_json", "outputs/predictions/inference_results.json")))
+    inference_json = resolve_repo_path(
+        str(paths.get("output_json", "outputs/predictions/inference_results.json"))
+    )
 
     if not gt_csv.exists():
         if inference_json.exists():
@@ -208,7 +220,7 @@ def run_infer(cfg_path: str, image: str | None, image_dir: str | None) -> None:
         default_image_dir = str(
             cfg.get("dataset", {}).get("out_dir", "data/processed/car_plate_kaggle")
         )
-        args.extend(["--image-dir", str(Path(default_image_dir) / "images" / "test")])
+        args.extend(["--image-dir", str(resolve_repo_path(default_image_dir) / "images" / "test")])
 
     run_module("src.infer.run_inference", args)
 
@@ -239,10 +251,11 @@ def run_eval(
     ]
 
     gt_csv = ground_truth_csv_override or str(paths.get("ground_truth_csv", ""))
-    if use_ground_truth and gt_csv and Path(gt_csv).exists():
-        args.extend(["--ground-truth-csv", gt_csv])
-    elif use_ground_truth and gt_csv and not Path(gt_csv).exists():
-        print(f"ground-truth csv not found, running base evaluation only: {gt_csv}")
+    gt_csv_path = resolve_repo_path(gt_csv) if gt_csv else None
+    if use_ground_truth and gt_csv_path and gt_csv_path.exists():
+        args.extend(["--ground-truth-csv", str(gt_csv_path)])
+    elif use_ground_truth and gt_csv_path and not gt_csv_path.exists():
+        print(f"ground-truth csv not found, running base evaluation only: {gt_csv_path}")
 
     run_module("src.eval.evaluate_pipeline", args)
 
