@@ -1,0 +1,75 @@
+Video Presentation Script: Smart Parking Access Control (SPAC)
+
+1. Problem Definition
+Arad: "Hi everyone, I’m Arad, and this is my partner Sia. Our project is called SPAC; Smart Parking Access Control. We set out to solve a very common problem: parking access at residential and commercial facilities. Right now, this is usually handled by physical access cards, keypads, or security guards. It’s costly, slow, prone to human error, and inconvenient for residents. 
+
+Our goal was to replace that with an automated Computer Vision access control pipeline. Rather than acting as physical hardware, SPAC is designed to be fed images externally like say, from an existing security camera. It processes these images, identifies the vehicle by its license plate, and outputs a decision whether to grant or deny access in real-time."
+
+2. Background and Starting Point
+Sia: "When looking at existing solutions, there are commercial ALPR, Automatic License Plate Recognition, systems out there, but they are often expensive and act as closed boxes. 
+
+For our starting point, we didn't reinvent the wheel. We built our foundation on top of establish open-source models: specifically, the Ultralytics YOLOv8 framework for object detection, and EasyOCR and PaddleOCR for text recognition. However, as we quickly learned, simply plugging an image into an out-of-the-box OCR model rarely works on real-world plates due to glare, blur, and weird angles. The core of our project was bridging that gap between raw models and a reliable, production-ready access control application."
+
+3. Our Contributions
+Arad: "Because system integration is the hardest part of ALPR, we had to build a lot of custom infrastructure. Over the course of the project:
+- I focused on the engineering architecture. I built a unified Command-Line Interface and YAML configuration system to link everything together. I also handled the dataset preparation pipeline, trained our custom YOLOv8 detector, and wrote the automated evaluation scripts."
+
+Sia: 
+- "And I focused on the OCR pipeline and validation. I led the OCR experimentation, developing the dual-backend approach. I also wrote the fuzzy and exact matching logic to compare our OCR results against a database of authorized residents. Finally, I created the manual ground-truth labels needed to actually evaluate our system mathematically, and conducted our qualitative reviews."
+
+4. Dataset and Pre-processing
+Arad: "For the object detection side, we used a dataset from Kaggle containing hundreds of images of cars with license plates annotated in Pascal VOC XML format. I wrote a pipeline to convert this into YOLO format and enforced a strict, deterministic 80/10/10 split for training, validation, and testing so we could accurately evaluate the model's performance on completely unseen plates."
+
+Sia: "But detecting the plate is only half the battle. To address the OCR failures I mentioned earlier, we couldn't just pass the cropped plate to the text reader. We implemented a robust image pre-processing pipeline that generates multiple variants of every cropped plate. We applied upscaling, grayscaling, Otsu thresholding, CLAHE contrast enhancement, and bilateral denoising. By generating different combinations of these, we gave our OCR engines multiple chances to read a difficult plate correctly."
+
+5. Computer Vision Components
+Arad: "For the computer vision components, I'd like to share what I learned about Object Detection. We chose YOLO version 8, specifically the 'nano' model (yolov8n). In a gate access system, latency is critical because you can't make a driver wait 10 seconds for a massive model to process. The nano model gave us an incredible balance. After training it for 80 epochs, our detector successfully localized the plate in 97.7% of our test images, providing incredibly fast, real-time bounding boxes."
+
+Sia: "And for the OCR side, the biggest thing I learned is the value of redundancy and heuristics. We used a Dual-Backend strategy, feeding all those pre-processed image variants into both EasyOCR and PaddleOCR. We then take all the candidate strings, normalize them by stripping symbols and pushing to uppercase, and rank them using a custom heuristic that looks at OCR confidence and 'plate plausibility'—meaning, does this string actually look like a real license plate format? Finally, because characters like '0' and 'O' get confused, we built a fuzzy matching algorithm to compare the best string against a CSV database of authorized residents."
+
+6. Project Demo
+[Transition to Screen Recording / Live Demo]
+
+Step 1: Clone and Setup
+(Action: Open terminal. Run git clone command, cd CV_SPAC, and python -m venv .venv)
+Arad: "Now we’ll show a quick demo of the pipeline in action from scratch. Anyone can reproduce our environment, so the very first step is to clone our project repository and create a clean Python virtual environment."
+
+Step 2: Install Dependencies
+(Action: Activate virtual environment and run python -m pip install -r requirements.txt)
+Sia: "Once our virtual environment is created, we activate it and install all our required dependencies from the requirements file. This ensures all our libraries, like YOLO and the OCR engines, are perfectly aligned."
+
+Step 3: Verify Setup
+(Action: Run python -m src.main --help)
+Arad: "To verify that everything is installed correctly, we run the help command on our main script. As you can see, this prints out all the tools available in our unified CLI, confirming the pipeline is ready to go."
+
+Step 4: Download the Dataset
+(Action: Run main script with the --download flag)
+Sia: "Next, we need our plates dataset. In order to download it, you just need the Kaggle CLI tool installed and configured on your machine. Since we already have that set up, we just run our data preparation tool with the '--download' flag, and it automatically fetches and structures all the images we need."
+
+Step 5: Prepare the Dataset
+(Action: Run main script with the --prepare flag)
+Arad: "Once we have the data downloaded, we run the tool again with the '--prepare' flag. This command does the heavy lifting: it automatically splits the raw data into our training, validation, and testing sets, and converts all the original XML annotations into the specific text format that YOLO requires."
+
+Step 6: Train the Object Detector
+(Action: Run main script with the --train flag)
+Sia: "With the data prepared, we run the script with the '--train' flag to start training the YOLO license plate detector. By default, our setup uses the CUDA versions of PyTorch to accelerate this process on a dedicated NVIDIA GPU. If you don't have a compatible GPU, you can easily change the 'device' setting in our configuration file from '0' to 'cpu' and revert to the default CPU PyTorch packages. Just keep in mind that training on a CPU alone will take a significant amount of time."
+
+Step 7: Run Inference
+(Action: Run main script with the --infer flag)
+Arad: "Once the model is trained, we use the '--infer' flag to run the end-to-end pipeline on our test images. This step is where everything comes together: it detects the plates, runs our OCR engines, applies the fuzzy matching, and generates 'Access Granted' or 'Access Denied' decisions for each vehicle."
+
+Step 8: Evaluate the Pipeline
+(Action: Run main script with the --eval --use-ground-truth flags)
+Sia: "Finally, to rigorously test how well our trained pipeline is working, we run the evaluation command using the '--eval' and '--use-ground-truth' flags. This automatically evaluates the entire pipeline's performance across our test set against manual labels, outputting our final accuracy metrics and confusion matrix."
+
+7. Results and Evaluation
+Arad: "To evaluate our system, we didn't just look at a few images—we ran a strict quantitative pipeline. Overall, our system achieved a 90.9% decision accuracy on our test set. Looking at our confusion matrix, out of the entire test set, we only had 1 false negative—where an authorized vehicle was denied—and 3 false positives."
+
+Sia: "However, the qualitative results showed us where the real bottleneck is. Our strict, exact character match rate for the plates was very low. This really highlights the success of our fuzzy matching and heuristic pipeline because even when the raw OCR is imperfect due to skewed angles or bad lighting, our system logic is robust enough to still make the correct gateway physical access decision 90% of the time."
+
+8. Reflection and Learning
+Arad: "Looking back, the hardest part of this project was definitely the system integration; getting YOLO, two different OCR engines, and the evaluation scripts all talking to each other perfectly through one tool."
+
+Sia: "And the most fun part was seeing the fuzzy matching actually rescue bad OCR reads in real-time. What we learned is that in applied Computer Vision, an off-the-shelf model is never enough; the pre-processing and business logic are what make it work. If we continued this project, our next steps would be expanding the dataset to include more challenging angles, experimenting with OCR models specifically fine-tuned for license plates, and better calibrating our fuzzy matcher for even higher accuracy."
+
+Arad: "Thank you for listening!"
