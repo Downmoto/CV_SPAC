@@ -35,7 +35,7 @@ training:
   epochs: 80
   imgsz: 640
   batch: 16
-  project: outputs
+  project: runs/detect/outputs
   name: detector_train
   device: 0
 

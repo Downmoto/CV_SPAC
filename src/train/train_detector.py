@@ -17,7 +17,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="training device (e.g., 0 for first GPU, cpu for CPU, or 0,1 for multi-GPU)",
     )
-    parser.add_argument("--project", default="outputs")
+    parser.add_argument("--project", default="runs/detect/outputs")
     parser.add_argument("--name", default="detector_train")
     parser.add_argument(
         "--export-weights",

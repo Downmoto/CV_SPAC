@@ -18,6 +18,32 @@ def run_module(module: str, args: list[str]) -> None:
     subprocess.run(cmd, check=True)
 
 
+def resolve_detector_results_csv(cfg: dict[str, Any]) -> str:
+    paths = cfg.get("paths", {})
+    tr = cfg.get("training", {})
+
+    configured_path = Path(
+        str(paths.get("detector_results_csv", "runs/detect/outputs/detector_train/results.csv"))
+    )
+    training_project = Path(str(tr.get("project", "runs/detect/outputs")))
+    training_name = str(tr.get("name", "detector_train"))
+
+    candidates = [
+        configured_path,
+        training_project / training_name / "results.csv",
+        Path("runs/detect/outputs") / training_name / "results.csv",
+        Path("outputs") / training_name / "results.csv",
+    ]
+
+    for candidate in candidates:
+        if candidate.exists():
+            if candidate != configured_path:
+                print(f"detector results csv not found at configured path, using: {candidate}")
+            return str(candidate)
+
+    return str(configured_path)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="spac workflow runner")
     parser.add_argument("--config", default="configs/default.yaml", help="config yaml path")
@@ -158,7 +184,7 @@ def run_train(cfg: dict[str, Any]) -> None:
         "--batch",
         str(tr.get("batch", 16)),
         "--project",
-        str(tr.get("project", "outputs")),
+        str(tr.get("project", "runs/detect/outputs")),
         "--name",
         str(tr.get("name", "detector_train")),
         "--export-weights",
@@ -224,9 +250,7 @@ def run_eval(
 
 def run_report(cfg: dict[str, Any]) -> None:
     paths = cfg.get("paths", {})
-    detector_results_csv = str(
-        paths.get("detector_results_csv", "runs/detect/outputs/detector_train/results.csv")
-    )
+    detector_results_csv = resolve_detector_results_csv(cfg)
     evaluation_summary_json = str(
         paths.get("evaluation_summary_json", "outputs/metrics/evaluation_summary.json")
     )
